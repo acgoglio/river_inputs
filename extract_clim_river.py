@@ -61,7 +61,7 @@ for idx_lon in range (0,len(lons[0])):
            print ('Found river ',river_num)
            print ('River Indexes: ', idx_lon, idx_lat ) 
            # build the climatological file name
-           clim_filename='clim_'+str(idx_lon)+'_'+str(idx_lat)+'.txt'
+           clim_filename='clim_'+str(idx_lat)+'_'+str(idx_lon)+'.txt'
            # Read 12 monthly clim values 
            runoff_clim=runoff[:,idx_lat,idx_lon]
            #runoff_clim_new=runoff_clim*10000.0

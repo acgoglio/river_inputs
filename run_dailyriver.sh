@@ -36,8 +36,8 @@ EXE_CLIM='extract_clim_river.py'
 EXE_KILLWORTH_TEMP="killworth_temp.F90"
 EXE_KILLWORTH="killworth_${YEAR2COMPUTE}.F90"
 # 3) Py script to interpolate pseudodischarges and built daily file for EAS system 
-EXE_INTERP2DAILY="daily_interp.py"
-
+PY_INTERP2DAILY_TEMP="daily_interp_temp.py"
+PY_INTERP2DAILY="daily_${YEAR2COMPUTE}.py"
 
 ############################ DO NOT CHANGE THE CODE BENEATH THIS LINE ########################## 
 # Load the environment for step 1
@@ -48,7 +48,7 @@ source activate $YOUR_PY_ENV
 # Check the existence of the workdir and mv into it
 if [[ -d $WORKDIR ]]; then
    echo "I am linking files to work dir: $WORKDIR.."
-   for TOBELINKED in $EXE_CLIM $EXE_KILLWORTH_TEMP $EXE_INTERP2DAILY $RIVER_INFO ; do 
+   for TOBELINKED in $EXE_CLIM $EXE_KILLWORTH_TEMP $PY_INTERP2DAILY_TEMP $RIVER_INFO ; do 
        ln -svf ${SRCDIR}/${TOBELINKED} ${WORKDIR}/
    done
    echo "I am moving to work dir: $WORKDIR.."
@@ -70,7 +70,7 @@ fi
 echo "Clean the workdir from previous run outputs.."
 sleep 3
 for TOBERM in $( ls clim_*.txt); do
-    rm -vr ${TOBERM}
+    rm  ${TOBERM}
 done
 
 echo "I am going to extract climatological values from input file: $MONTHLY_RIVERS ..."
@@ -85,19 +85,29 @@ module load intel19.5/19.5.281 impi19.5/19.5.281 impi19.5/netcdf/C_4.7.2-F_4.5.2
 echo "Working on year: $YEAR2COMPUTE"
 # Loop on days and months (from november of year-1 to february year+1 )
 STRING_NUM_OF_DAYS=""
+STRING_NUM_OF_DAYS_2=""
 # Built start date
 START_YEAR=$(( $YEAR2COMPUTE - 1 ))
 NEXT_START_MONTH=12
 START_DATE=${START_YEAR}${NEXT_START_MONTH}01
 # Loop on months
+YEARTOTDAYS=0
 IDX_DATE=$START_DATE
 IDX_MONTH=0
 while [[ $IDX_MONTH -lt 16 ]]; do   
       DATE2WRITE=$( date -u -d "${IDX_DATE} -1 day" +%Y%m%d )
+      if [[ $IDX_MONTH == 3 ]] && [[ ${DATE2WRITE:6:2} == 29 ]]; then
+         YEARTOTDAYS=366
+      elif [[ $IDX_MONTH == 3 ]] && [[ ${DATE2WRITE:6:2} == 28 ]]; then
+         YEARTOTDAYS=365
+      fi
       # Concatenate strings 
-      if [[ $IDX_MONTH -lt 15 ]]; then
+      if [[ $IDX_MONTH -lt 2 ]]; then
          STRING_NUM_OF_DAYS=${STRING_NUM_OF_DAYS}$(echo -en "${DATE2WRITE:6:2},")
-      else
+      elif [[ $IDX_MONTH -ge 2 ]] && [[ $IDX_MONTH -lt 14 ]]; then
+         STRING_NUM_OF_DAYS=${STRING_NUM_OF_DAYS}$(echo -en "${DATE2WRITE:6:2},")
+         STRING_NUM_OF_DAYS_2=${STRING_NUM_OF_DAYS_2}$(echo -en "${DATE2WRITE:6:2} ")
+      elif [[ $IDX_MONTH -ge 14 ]] && [[ $IDX_MONTH -lt 16 ]]; then
          STRING_NUM_OF_DAYS=${STRING_NUM_OF_DAYS}$(echo -en "${DATE2WRITE:6:2}")
       fi
       IDX_DATE=$( date -u -d "${IDX_DATE} 1 month" +%Y%m%d )
@@ -112,7 +122,7 @@ cat << EOF > ${SED_FILE}
    s/%NOV_TO_FEB_NUM_OF_DAYS%/${STRING_NUM_OF_DAYS}/g
 EOF
 sed -f ${SED_FILE} ${EXE_KILLWORTH_TEMP} > ${EXE_KILLWORTH}
-rm -v ${SED_FILE}
+rm ${SED_FILE}
 echo ".. Done"
 
 # Compile the code
@@ -125,7 +135,7 @@ echo "...Done!!"
 echo "Clean the workdir from previous run outputs.."
 sleep 3
 for TOBERM in $( ls pseudo_*.txt); do
-    rm -vr ${TOBERM}
+    rm  ${TOBERM}
 done
 
 echo "Computing the pseudodischarges.."
@@ -136,7 +146,58 @@ done
 echo "...Done!!"
 
 # Load the environment for step 3
-module load $YOUR_PY_ENV
-source activate mappyenv
+#module load $YOUR_PY_ENV
+#source activate mappyenv
+
+# Build arrays for step 3
+for CLIM_FILE in $(ls clim_*.txt); do
+    PSEUDO_FILENAME=$(echo ${CLIM_FILE} | sed -e "s/clim_/pseudo_/g" )
+    # Look for the name of the river in river_info.csv file
+    INDEXES_OR=$(echo ${CLIM_FILE} | cut -f 2,3 -d"_" | cut -f 1 -d".")
+    INDEXES=$(echo ${CLIM_FILE} | cut -f 2,3 -d"_" | cut -f 1 -d"."| sed -e "s/_/;/g" )
+    RIVER_NAME="${INDEXES_OR}_$( grep "${INDEXES}" ${RIVER_INFO} | cut -f 6 -d";" )" || RIVER_NAME="${INDEXES_OR}_${INDEXES_OR}_River"
+    echo "INDEXES=$INDEXES RIVER_NAME: $RIVER_NAME"
+    # Read climatologica values and built climatological intervals
+    VAL=$( cat $CLIM_FILE )
+    IDX_VAL=1
+    CLIM_ALL=""
+    for DAYS_TOT in $STRING_NUM_OF_DAYS_2; do
+       for IDX_DAYS in $( seq 1 1 $DAYS_TOT ); do
+           CLIM_PER_DAY=$( echo -en $( echo "${VAL}" | cut -f $IDX_VAL -d " "))
+           CLIM_ALL=${CLIM_ALL}${CLIM_PER_DAY}$(echo -en ",")
+       done
+       IDX_VAL=$(( $IDX_VAL + 1 ))
+    done
+    CLIM_ALL=$(echo ${CLIM_ALL}${CLIM_PER_DAY}$(echo -en ",") | sed -e "s/,,//g" )
+    # Read pseudodischarges 
+    PSEUDO_ALL=""
+    TIMEINOUT_ALL=""
+    while read LINE; do
+         TIME_PER_MONTH=$( echo $LINE | cut -f 1 -d" ")
+         PSEUDO_PER_MONTH=$( echo $LINE | cut -f 2 -d" ")
+         PSEUDO_ALL=${PSEUDO_ALL}${PSEUDO_PER_MONTH}$(echo -en ",")
+         TIMEINOUT_ALL=${TIMEINOUT_ALL}${TIME_PER_MONTH}$(echo -en ",")
+    done < ${PSEUDO_FILENAME}
+    PSEUDO_ALL=$(echo ${PSEUDO_ALL}$(echo -en ",") | sed -e "s/,,//g" )
+    TIMEINOUT_ALL=$(echo ${TIMEINOUT_ALL}$(echo -en ",") | sed -e "s/,,//g" )
+
+    # Built the script
+    echo "I am building the script.."
+    # Sed file creation and sobstitution of parematers in the templates  
+    SED_FILE=sed_file.txt
+    cat << EOF > ${SED_FILE}
+    s/%CLIM_ALL%/${CLIM_ALL}/g
+    s/%PSEUDO_ALL%/${PSEUDO_ALL}/g
+    s/%TIMEINOUT_ALL%/${TIMEINOUT_ALL}/g
+    s/%NOV_TO_FEB_NUM_OF_DAYS%/${STRING_NUM_OF_DAYS}/g
+EOF
+    sed -f ${SED_FILE} ${PY_INTERP2DAILY_TEMP} > ${PY_INTERP2DAILY}
+    rm ${SED_FILE}
+    echo ".. Done"
+  
+    echo "Interpolation.."
+    python ${PY_INTERP2DAILY} ${RIVER_NAME} ${YEAR2COMPUTE}
+    echo ".. Done"
+done
 
 ######################

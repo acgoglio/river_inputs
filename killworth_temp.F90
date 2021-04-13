@@ -63,7 +63,7 @@
 !     b = A * d  where b are daily values, A is a tridiagonal matrix 
 !     and d are climatological values      
       j = 1
-      l = RESHAPE((/ 30,31,31,28,31,30,31,30,31,31,30,31,30,31,31,28 /), SHAPE(l)) 
+      l = RESHAPE((/ %NOV_TO_FEB_NUM_OF_DAYS% /), SHAPE(l)) 
       ! november to february number of days
 
       DO i = 2,15

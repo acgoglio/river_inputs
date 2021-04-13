@@ -54,7 +54,7 @@ plt.plot(xnew-offset,ynew,label = 'Daily values')
 plt.grid ()
 plt.xlim(1,365)
 #plt.axhline(y=0 color='black')
-plt.ylabel ('River discharge [kg/m2/s]')
+plt.ylabel ('River discharge [kg/cm2/s]')
 plt.xlabel ('Days of the year')
 plt.legend() #bbox_to_anchor=(1.04,1), loc="upper left")
 # Save and close 

@@ -53,13 +53,13 @@ print ('len(lons): ',len(lons[1]),' len(lats): ',len(lats[:,0]))
 river_num=0
 for idx_lon in range (0,len(lons[0])):
     for idx_lat in range (0,len(lats)):
-        print ('Indexes: ', idx_lon, idx_lat )
 
         # Read the river_mask value
         mask_val = mask[0,idx_lat,idx_lon]
         if mask_val == 1:
-           river_num=river_num=+1
-           print ('Found river ',river_num) 
+           river_num=river_num+1
+           print ('Found river ',river_num)
+           print ('River Indexes: ', idx_lon, idx_lat ) 
            # build the climatological file name
            clim_filename='clim_'+str(idx_lon)+'_'+str(idx_lat)+'.txt'
            # Read 12 monthly clim values 

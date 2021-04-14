@@ -24,10 +24,26 @@ YOUR_PY_ENV="mappyenv"
 
 # Input path/name (EAS system monthly river input file) and output name (EAS system daily river input file)
 MONTHLY_RIVERS="/data/opa/mfs-dev/Med_static/MFS_EAS6_STATIC_V2/NEMO_DATA0/runoff_1m_nomask.nc"
-DAILY_RIVERS="runoff_1d_nomask.nc"
+DAILY_RIVERS="runoff_1d_nomask_${YEAR2COMPUTE}.nc"
+
+###########################################################################################
 
 # Csv file with rivers info
 RIVER_INFO="rivers_info.csv"
+
+# I/O nc dimensions and variables names
+# Dimensions names 
+LAT_IDX='y'
+LON_IDX='x'
+TIME_IDX='time_counter'
+# Var names
+LAT_2D='nav_lat'
+LON_2D='nav_lon'
+MASK_VAR='river_msk'
+RUNOFF_VAR='sorunoff'
+SALINITY_VAR='s_river'
+CLIM_RUNOFF_VAR='clim_runoff'
+NAME_VAR='river_name'
 
 # Executables:
 # 1) Py script to extract climatological values from Input file
@@ -58,13 +74,47 @@ else
    exit
 fi
 
-# Check and copy the input file
-if [[ -e $MONTHLY_RIVERS ]]; then
-   cp -v $MONTHLY_RIVERS ${DAILY_RIVERS}
-else 
+# Check the river input file
+if [[ ! -e ${MONTHLY_RIVERS} ]]; then
    echo "ERROR: Input file $MONTHLY_RIVERS NOT Found! "
    exit
 fi
+
+# Count days in the year
+TOT_DOY=365
+DAYS_CHECK=$(( ${YEAR2COMPUTE} % 4 ))
+if [[ ${DAYS_CHECK} == 0 ]]; then
+   TOT_DOY=$(( $TOT_DOY + 1 ))
+fi
+echo "Days in ${YEAR2COMPUTE} are $TOT_DOY!"
+
+# Loop on days and months (from november of year-1 to february year+1 )
+# To extract array of month len
+STRING_NUM_OF_DAYS=""
+STRING_NUM_OF_DAYS_2=""
+# Built start date
+START_YEAR=$(( $YEAR2COMPUTE - 1 ))
+NEXT_START_MONTH=12
+START_DATE=${START_YEAR}${NEXT_START_MONTH}01
+# Loop on months
+IDX_DATE=$START_DATE
+IDX_MONTH=0
+while [[ $IDX_MONTH -lt 16 ]]; do   
+      DATE2WRITE=$( date -u -d "${IDX_DATE} -1 day" +%Y%m%d )
+      # Concatenate strings 
+      if [[ $IDX_MONTH -lt 2 ]]; then
+         STRING_NUM_OF_DAYS=${STRING_NUM_OF_DAYS}$(echo -en "${DATE2WRITE:6:2},")
+      elif [[ $IDX_MONTH -ge 2 ]] && [[ $IDX_MONTH -lt 14 ]]; then
+         STRING_NUM_OF_DAYS=${STRING_NUM_OF_DAYS}$(echo -en "${DATE2WRITE:6:2},")
+         STRING_NUM_OF_DAYS_2=${STRING_NUM_OF_DAYS_2}$(echo -en "${DATE2WRITE:6:2} ")
+      elif [[ $IDX_MONTH -ge 14 ]] && [[ $IDX_MONTH -lt 15 ]]; then
+         STRING_NUM_OF_DAYS=${STRING_NUM_OF_DAYS}$(echo -en "${DATE2WRITE:6:2},")
+      elif [[ $IDX_MONTH -eq 15 ]]; then
+         STRING_NUM_OF_DAYS=${STRING_NUM_OF_DAYS}$(echo -en "${DATE2WRITE:6:2}")
+      fi
+      IDX_DATE=$( date -u -d "${IDX_DATE} 1 month" +%Y%m%d )
+      IDX_MONTH=$(( $IDX_MONTH + 1 ))
+done
 
 # Clean the directory from previous outputs
 echo "Clean the workdir from previous run outputs.."
@@ -73,8 +123,9 @@ for TOBERM in $( ls clim_*.txt); do
     rm  ${TOBERM}
 done
 
-echo "I am going to extract climatological values from input file: $MONTHLY_RIVERS ..."
-python $EXE_CLIM $MONTHLY_RIVERS
+echo "I am going to extract climatological values from input file: $MONTHLY_RIVERS and built the output file: $DAILY_RIVERS ..."
+# Run the code wich needs as args input and output names + num of days + all the dimension and variables names of input and output fields
+python $EXE_CLIM $MONTHLY_RIVERS $DAILY_RIVERS $TOT_DOY $LAT_IDX $LON_IDX $TIME_IDX $LAT_2D $LON_2D $MASK_VAR $RUNOFF_VAR $SALINITY_VAR $CLIM_RUNOFF_VAR $NAME_VAR $STRING_NUM_OF_DAYS
 echo "...Done!!"
 
 
@@ -82,37 +133,6 @@ echo "...Done!!"
 echo "Loading the environment for step 2.."
 module load intel19.5/19.5.281 impi19.5/19.5.281 impi19.5/netcdf/C_4.7.2-F_4.5.2_CXX_4.3.1
 
-echo "Working on year: $YEAR2COMPUTE"
-# Loop on days and months (from november of year-1 to february year+1 )
-STRING_NUM_OF_DAYS=""
-STRING_NUM_OF_DAYS_2=""
-# Built start date
-START_YEAR=$(( $YEAR2COMPUTE - 1 ))
-NEXT_START_MONTH=12
-START_DATE=${START_YEAR}${NEXT_START_MONTH}01
-# Loop on months
-YEARTOTDAYS=0
-IDX_DATE=$START_DATE
-IDX_MONTH=0
-while [[ $IDX_MONTH -lt 16 ]]; do   
-      DATE2WRITE=$( date -u -d "${IDX_DATE} -1 day" +%Y%m%d )
-      if [[ $IDX_MONTH == 3 ]] && [[ ${DATE2WRITE:6:2} == 29 ]]; then
-         YEARTOTDAYS=366
-      elif [[ $IDX_MONTH == 3 ]] && [[ ${DATE2WRITE:6:2} == 28 ]]; then
-         YEARTOTDAYS=365
-      fi
-      # Concatenate strings 
-      if [[ $IDX_MONTH -lt 2 ]]; then
-         STRING_NUM_OF_DAYS=${STRING_NUM_OF_DAYS}$(echo -en "${DATE2WRITE:6:2},")
-      elif [[ $IDX_MONTH -ge 2 ]] && [[ $IDX_MONTH -lt 14 ]]; then
-         STRING_NUM_OF_DAYS=${STRING_NUM_OF_DAYS}$(echo -en "${DATE2WRITE:6:2},")
-         STRING_NUM_OF_DAYS_2=${STRING_NUM_OF_DAYS_2}$(echo -en "${DATE2WRITE:6:2} ")
-      elif [[ $IDX_MONTH -ge 14 ]] && [[ $IDX_MONTH -lt 16 ]]; then
-         STRING_NUM_OF_DAYS=${STRING_NUM_OF_DAYS}$(echo -en "${DATE2WRITE:6:2}")
-      fi
-      IDX_DATE=$( date -u -d "${IDX_DATE} 1 month" +%Y%m%d )
-      IDX_MONTH=$(( $IDX_MONTH + 1 ))
-done
 
   # Built and Compile the executable
 echo "I am building the Killworth executable.."
@@ -153,9 +173,11 @@ echo "...Done!!"
 for CLIM_FILE in $(ls clim_*.txt); do
     PSEUDO_FILENAME=$(echo ${CLIM_FILE} | sed -e "s/clim_/pseudo_/g" )
     # Look for the name of the river in river_info.csv file
+    RIVER_LAT=$(echo ${CLIM_FILE} | cut -f 2 -d"_")
+    RIVER_LON=$(echo ${CLIM_FILE} | cut -f 3 -d"_" | cut -f 1 -d".")
     INDEXES_OR=$(echo ${CLIM_FILE} | cut -f 2,3 -d"_" | cut -f 1 -d".")
     INDEXES=$(echo ${CLIM_FILE} | cut -f 2,3 -d"_" | cut -f 1 -d"."| sed -e "s/_/;/g" )
-    RIVER_NAME="${INDEXES_OR}_$( grep "${INDEXES}" ${RIVER_INFO} | cut -f 6 -d";" )" || RIVER_NAME="${INDEXES_OR}_${INDEXES_OR}_River"
+    RIVER_NAME="$( grep "^${INDEXES}" ${RIVER_INFO} | cut -f 6 -d";" )" || RIVER_NAME="Unknown_River"
     echo "INDEXES=$INDEXES RIVER_NAME: $RIVER_NAME"
     # Read climatologica values and built climatological intervals
     VAL=$( cat $CLIM_FILE )
@@ -168,7 +190,7 @@ for CLIM_FILE in $(ls clim_*.txt); do
        done
        IDX_VAL=$(( $IDX_VAL + 1 ))
     done
-    CLIM_ALL=$(echo ${CLIM_ALL}${CLIM_PER_DAY}$(echo -en ",") | sed -e "s/,,//g" )
+    CLIM_ALL=$(echo ${CLIM_ALL}$(echo -en ",") | sed -e "s/,,//g" )
     # Read pseudodischarges 
     PSEUDO_ALL=""
     TIMEINOUT_ALL=""
@@ -195,8 +217,8 @@ EOF
     rm ${SED_FILE}
     echo ".. Done"
   
-    echo "Interpolation.."
-    python ${PY_INTERP2DAILY} ${RIVER_NAME} ${YEAR2COMPUTE}
+    echo "I am doing the Interpolation and the plot..${RIVER_LAT} ${RIVER_LON} ${RIVER_NAME} ${DAILY_RIVERS} ${YEAR2COMPUTE} ${RUNOFF_VAR}"
+    python ${PY_INTERP2DAILY} ${RIVER_LAT} ${RIVER_LON} ${RIVER_NAME} ${DAILY_RIVERS} ${YEAR2COMPUTE} ${RUNOFF_VAR}
     echo ".. Done"
 done
 

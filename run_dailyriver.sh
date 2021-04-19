@@ -13,7 +13,7 @@ echo "*********** Daily river input 4 EAS System ***********"
 
 ####################### SET THE FOLLOWING VARS: ############################################
 # Year
-YEAR2COMPUTE=2016
+YEAR2COMPUTE=2018
 
 # src directory (path of this script!)  workdir and your virtual environment
 SRCDIR="/users_home/oda/ag15419/river_inputs/Killworth/"
@@ -49,11 +49,11 @@ NAME_VAR='river_name'
 # 1) Py script to extract climatological values from Input file
 EXE_CLIM='extract_clim_river.py'
 # 2) F90 Script (template) to compute pseudodischarges (Killworth matrix)
-EXE_KILLWORTH_TEMP="killworth_temp.F90"
-EXE_KILLWORTH="killworth_${YEAR2COMPUTE}.F90"
+EXE_KILLWORTH_TEMP="killworth_temp_12.F90" # killworth_temp_12.F90
+EXE_KILLWORTH="killworth_${YEAR2COMPUTE}_12.F90" # killworth_${YEAR2COMPUTE}_12.F90
 # 3) Py script to interpolate pseudodischarges and built daily file for EAS system 
-PY_INTERP2DAILY_TEMP="daily_interp_temp.py"
-PY_INTERP2DAILY="daily_${YEAR2COMPUTE}.py"
+PY_INTERP2DAILY_TEMP="daily_interp_temp.py" # daily_interp_temp_12.py
+PY_INTERP2DAILY="daily_${YEAR2COMPUTE}.py" # daily_${YEAR2COMPUTE}_12.py
 
 ############################ DO NOT CHANGE THE CODE BENEATH THIS LINE ########################## 
 # Load the environment for step 1

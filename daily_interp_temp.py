@@ -22,7 +22,7 @@ from scipy import interpolate
 # by AC Goglio (CMCC)
 # annachiara.goglio@cmcc.it
 #
-# Written: 32/04/2021
+# Written: 12/04/2021
 #
 # This script reads the output (txt format) x_killworth_time_interpolation.exe
 # does the daily interpolation from monthly pseudodischarge 
@@ -66,7 +66,7 @@ plt.plot(x_clim,climatological_values,label = 'Climatological values')
 plt.plot(timeintoout-offset,pseudodischarge,'o',label = 'Pseudodischarge (Killworth)')
 plt.plot(xnew-offset,ynew,label = 'Daily values')
 plt.grid ()
-#plt.xlim(1,len(climatological_values)-1)
+plt.xlim(1,len(climatological_values)-1)
 plt.ylabel ('River discharge [kg/m2/s]')
 plt.xlabel ('Days of the year')
 plt.legend() 

@@ -13,15 +13,15 @@
 !     DECLARATION SECTION 
       CHARACTER (len = 100)     :: argclim          ! climatology .txt to read (argument)     
       REAL, DIMENSION(1,12)     :: climrvr          ! climatological values series
-      REAL, DIMENSION(1,14)     :: extclimrvr       ! climatological values extended series     
+      REAL, DIMENSION(1,12)     :: extclimrvr       ! climatological values extended series     
       INTEGER                   :: k                ! loop indexes
       INTEGER                   :: i, j, z          ! loop indexes
       INTEGER, DIMENSION(1,16)  :: l                ! number of days in each month 
-      REAL, DIMENSION(1,14)     :: e, g, f          ! matrix coefficients
-      REAL, DIMENSION(14,14)    :: A                ! matrix
-      REAL, DIMENSION(14,14)    :: AA               ! inverse matrix of A
-      REAL, DIMENSION(14,14)    :: UNI
-      REAL, DIMENSION(1,14)     :: pseudodischarge  ! pseudodischarge matrix      
+      REAL, DIMENSION(1,12)     :: e, g, f          ! matrix coefficients
+      REAL, DIMENSION(12,12)    :: A                ! matrix
+      REAL, DIMENSION(12,12)    :: AA               ! inverse matrix of A
+      REAL, DIMENSION(12,12)    :: UNI
+      REAL, DIMENSION(1,12)     :: pseudodischarge  ! pseudodischarge matrix      
       REAL                      :: l1, lm1, lp1
       INTEGER                   :: nx, ny           ! dimensions of matrix A
 !     FINDInv subroutine section
@@ -36,7 +36,7 @@
       REAL, ALLOCATABLE, DIMENSION(:,:) :: weight
       REAL                              :: minXdata, minYdata, xRange
 !     linear interpolation section
-      INTEGER, DIMENSION(1,14)              :: timein,timeintotimeout          ! Array from [1:14] number
+      INTEGER, DIMENSION(1,14)              :: timein,timeintotimeout          ! Array from [1:12] number
       INTEGER                               :: it, ot          ! Loop indexes
       INTEGER                               :: countertime,counterdays     ! Time counter
 
@@ -52,12 +52,8 @@
 
 !     Extend climatological series for ensure cyclicity
       DO k=1,12
-        extclimrvr(1,k+1) = climrvr(1,k)
+        extclimrvr(1,k) = climrvr(1,k)
       END DO
-
-      extclimrvr(1,1)     = climrvr(1,12)
-      extclimrvr(1,14)    = climrvr(1,1)        
-
 
 !     General formulation for getting daily values from monthly values
 !     b = A * d  where b are daily values, A is a tridiagonal matrix 
@@ -66,7 +62,7 @@
       l = RESHAPE((/ %NOV_TO_FEB_NUM_OF_DAYS% /), SHAPE(l)) 
       ! november to february number of days
 
-      DO i = 2,15
+      DO i = 3,14
         l1 = l(1,i)
         lm1= l(1,i-1)
         lp1= l(1,i+1)        
@@ -79,20 +75,18 @@
 
 
 !     Matrix A definition
-      A(1,:)  = (/ f(1,1),g(1,1),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,e(1,1) /)
-      A(2,:)  = (/ e(1,2),f(1,2),g(1,2),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0 /)
-      A(3,:)  = (/ 0.0,e(1,3),f(1,3),g(1,3),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0 /)
-      A(4,:) = (/ 0.0,0.0,e(1,4),f(1,4),g(1,4),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0 /)
-      A(5,:) = (/ 0.0,0.0,0.0,e(1,5),f(1,5),g(1,5),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0 /)
-      A(6,:) = (/ 0.0,0.0,0.0,0.0,e(1,6),f(1,6),g(1,6),0.0,0.0,0.0,0.0,0.0,0.0,0.0 /)
-      A(7,:) = (/ 0.0,0.0,0.0,0.0,0.0,e(1,7),f(1,7),g(1,7),0.0,0.0,0.0,0.0,0.0,0.0 /)
-      A(8,:) = (/ 0.0,0.0,0.0,0.0,0.0,0.0,e(1,8),f(1,8),g(1,8),0.0,0.0,0.0,0.0,0.0 /)
-      A(9,:) = (/ 0.0,0.0,0.0,0.0,0.0,0.0,0.0,e(1,9),f(1,9),g(1,9),0.0,0.0,0.0,0.0 /)
-      A(10,:) = (/ 0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,e(1,10),f(1,10),g(1,10),0.0,0.0,0.0 /)
-      A(11,:) = (/ 0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,e(1,11),f(1,11),g(1,11),0.0,0.0 /)
-      A(12,:) = (/ 0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,e(1,12),f(1,12),g(1,12),0.0 /)
-      A(13,:) = (/ 0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,e(1,13),f(1,13),g(1,13) /)
-      A(14,:) = (/ g(1,14),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,e(1,14),f(1,14) /)
+      A(1,:)  = (/ f(1,1),g(1,1),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,e(1,1) /)
+      A(2,:)  = (/ e(1,2),f(1,2),g(1,2),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0 /)
+      A(3,:)  = (/ 0.0,e(1,3),f(1,3),g(1,3),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0 /)
+      A(4,:) = (/ 0.0,0.0,e(1,4),f(1,4),g(1,4),0.0,0.0,0.0,0.0,0.0,0.0,0.0 /)
+      A(5,:) = (/ 0.0,0.0,0.0,e(1,5),f(1,5),g(1,5),0.0,0.0,0.0,0.0,0.0,0.0 /)
+      A(6,:) = (/ 0.0,0.0,0.0,0.0,e(1,6),f(1,6),g(1,6),0.0,0.0,0.0,0.0,0.0 /)
+      A(7,:) = (/ 0.0,0.0,0.0,0.0,0.0,e(1,7),f(1,7),g(1,7),0.0,0.0,0.0,0.0 /)
+      A(8,:) = (/ 0.0,0.0,0.0,0.0,0.0,0.0,e(1,8),f(1,8),g(1,8),0.0,0.0,0.0 /)
+      A(9,:) = (/ 0.0,0.0,0.0,0.0,0.0,0.0,0.0,e(1,9),f(1,9),g(1,9),0.0,0.0 /)
+      A(10,:) = (/ 0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,e(1,10),f(1,10),g(1,10),0.0 /)
+      A(11,:) = (/ 0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,e(1,11),f(1,11),g(1,11)/)
+      A(12,:) = (/ g(1,12),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,e(1,12),f(1,12) /)
 
       
       nx = SIZE(A(1,:))
@@ -119,10 +113,12 @@
       END DO 
  
       ! Print pseudoscharge in the middle of the current month
-      DO it = 1,14
-         PRINT*,timeintotimeout(1,it),pseudodischarge(1,it)
+      ! On 14 months from dec to jan
+      PRINT*,timeintotimeout(1,1),pseudodischarge(1,12)
+      DO it = 1,12
+         PRINT*,timeintotimeout(1,it+1),pseudodischarge(1,it)
       END DO
-
+      PRINT*,timeintotimeout(1,14),pseudodischarge(1,1)
 
       END PROGRAM killworth_time_interpolation
 

@@ -9,15 +9,16 @@
 set -e
 #set -x 
 ########################
-echo "*********** Daily river input 4 EAS System ***********"
+module purge
 
+echo "*********** Daily river input 4 EAS System ***********"
 ####################### SET THE FOLLOWING VARS: ############################################
 # Year
-YEAR2COMPUTE=2018
+YEAR2COMPUTE=2020
 
 # src directory (path of this script!)  workdir and your virtual environment
 SRCDIR="/users_home/oda/ag15419/river_inputs/Killworth/"
-WORKDIR="/work/oda/ag15419/tmp/river_inputs/"
+WORKDIR="/work/oda/ag15419/tmp/river_inputs/kill_obs"
 
 # your virtual env
 YOUR_PY_ENV="mappyenv"
@@ -25,6 +26,28 @@ YOUR_PY_ENV="mappyenv"
 # Input path/name (EAS system monthly river input file) and output name (EAS system daily river input file)
 MONTHLY_RIVERS="/data/opa/mfs-dev/Med_static/MFS_EAS6_STATIC_V2/NEMO_DATA0/runoff_1m_nomask.nc"
 DAILY_RIVERS="runoff_1d_nomask_${YEAR2COMPUTE}.nc"
+
+# NEMO mesh mask file (needed for Po river pre-processing)
+MOD_MESHMASK="/work/oda/ag15419/PHYSW24_DATA/TIDES/DATA0/mesh_mask.nc"
+
+# -----PO River---------
+# Flag to sobstitute observed values to the climatological ones for the Po river (to activate set PORIVER_OBS_FLAG=1)
+PORIVER_OBS_FLAG=1
+# Prename of the Po river in the csv file
+PO_RIVER_PRENAME='Po_' 
+# Path of 30m arpae obs and code of runoff field in the database 
+PO_INPUT_PATH='/data/oda/ag15419/RIVERS_DATA/PO/30m/'
+if [[ $YEAR2COMPUTE -lt 2020 ]]; then
+   PO_INPUT_FILE_PRE=''
+   PO_INPUT_FILE_POST='-ingv2.txt'
+else
+   PO_INPUT_FILE_PRE='pontelagoscuro_'
+   PO_INPUT_FILE_POST='.txt'
+fi
+PO_INPUT_VARCODE='512'
+
+# Path of 1 day arpae obs
+PO_INPUT_DAILY='/data/oda/ag15419/RIVERS_DATA/PO/daily/Pontelagoscuro_daily_2015_2021.csv'
 
 ###########################################################################################
 
@@ -54,6 +77,8 @@ EXE_KILLWORTH="killworth_${YEAR2COMPUTE}_12.F90" # killworth_${YEAR2COMPUTE}_12.
 # 3) Py script to interpolate pseudodischarges and built daily file for EAS system 
 PY_INTERP2DAILY_TEMP="daily_interp_temp.py" # daily_interp_temp_12.py
 PY_INTERP2DAILY="daily_${YEAR2COMPUTE}.py" # daily_${YEAR2COMPUTE}_12.py
+# 4) Py script to pre-process Po river obs and substitute the time series in the out file
+PY_PORIVER_OBS="po_river_daily.py"
 
 ############################ DO NOT CHANGE THE CODE BENEATH THIS LINE ########################## 
 # Load the environment for step 1
@@ -64,7 +89,7 @@ source activate $YOUR_PY_ENV
 # Check the existence of the workdir and mv into it
 if [[ -d $WORKDIR ]]; then
    echo "I am linking files to work dir: $WORKDIR.."
-   for TOBELINKED in $EXE_CLIM $EXE_KILLWORTH_TEMP $PY_INTERP2DAILY_TEMP $RIVER_INFO ; do 
+   for TOBELINKED in $EXE_CLIM $EXE_KILLWORTH_TEMP $PY_INTERP2DAILY_TEMP $RIVER_INFO $PY_PORIVER_OBS ; do 
        ln -svf ${SRCDIR}/${TOBELINKED} ${WORKDIR}/
    done
    echo "I am moving to work dir: $WORKDIR.."
@@ -134,7 +159,7 @@ echo "Loading the environment for step 2.."
 module load intel19.5/19.5.281 impi19.5/19.5.281 impi19.5/netcdf/C_4.7.2-F_4.5.2_CXX_4.3.1
 
 
-  # Built and Compile the executable
+# Built and Compile the executable
 echo "I am building the Killworth executable.."
 # Sed file creation and sobstitution of parematers in the templates  
 SED_FILE=sed_file.txt
@@ -205,7 +230,7 @@ for CLIM_FILE in $(ls clim_*.txt); do
 
     # Built the script
     echo "I am building the script.."
-    # Sed file creation and sobstitution of parematers in the templates  
+    # Sed file creation and sobstitution of parameters in the templates  
     SED_FILE=sed_file.txt
     cat << EOF > ${SED_FILE}
     s/%CLIM_ALL%/${CLIM_ALL}/g
@@ -222,4 +247,12 @@ EOF
     echo ".. Done"
 done
 
+
+################ PO RIVER OBS #############
+if [[ $PORIVER_OBS_FLAG == 1 ]]; then
+   echo "I am going to extract, pre-process and sobstitute observed values for the Po river.. ${PY_PORIVER_OBS} ${WORKDIR} ${YEAR2COMPUTE} ${TOT_DOY} ${PO_INPUT_PATH} ${PO_INPUT_FILEPRE} ${PO_INPUT_FILEPOST} ${PO_INPUT_VARCODE} ${PO_INPUT_DAILY} ${MOD_MESHMASK} ${RIVER_INFO} ${PO_RIVER_PRENAME} ${RUNOFF_VAR} ${DAILY_RIVERS} ${CLIM_RUNOFF_VAR}"
+   cp ${DAILY_RIVERS} ${DAILY_RIVERS}_tmp
+   python ${PY_PORIVER_OBS} ${WORKDIR} ${YEAR2COMPUTE} ${TOT_DOY} ${PO_INPUT_PATH} ${PO_INPUT_FILE_PRE} ${PO_INPUT_FILE_POST} ${PO_INPUT_VARCODE} ${PO_INPUT_DAILY} ${MOD_MESHMASK} ${RIVER_INFO} ${PO_RIVER_PRENAME} ${RUNOFF_VAR} ${DAILY_RIVERS} ${CLIM_RUNOFF_VAR}
+   echo ".. Done"
+fi
 ######################

@@ -55,30 +55,41 @@ x_clim=np.arange(0, len(climatological_values), 1.0)
 ynew = f(xnew)
 print('Year len: ',len(ynew))
 #--------------------------------------
-# Plots
-offset=nov_to_feb[1]
-# Plots Per grid and per part
-plotname='killworth_'+str(river_lat)+'_'+str(river_lon)+'_'+river_name+'_'+year2comp+'.png'
-plt.figure(figsize=(18,12))
-plt.rc('font', size=16)
-plt.title ('From climatological discharge to daily discharge --- River: '+river_name+'--- Year: '+year2comp)
-plt.plot(x_clim,climatological_values,label = 'Climatological values')
-plt.plot(timeintoout-offset,pseudodischarge,'o',label = 'Pseudodischarge (Killworth)')
-plt.plot(xnew-offset,ynew,label = 'Daily values')
-plt.grid ()
-plt.xlim(1,len(climatological_values)-1)
-plt.ylabel ('River discharge [kg/m2/s]')
-plt.xlabel ('Days of the year')
-plt.legend() 
-# Save and close 
-plt.savefig(plotname)
-plt.clf()
+## Plots
+#offset=nov_to_feb[1]
+## Plots Per grid and per part
+#plotname='killworth_'+str(river_lat)+'_'+str(river_lon)+'_'+river_name+'_'+year2comp+'.png'
+#plt.figure(figsize=(18,12))
+#plt.rc('font', size=16)
+#plt.title ('From climatological discharge to daily discharge --- River: '+river_name+'--- Year: '+year2comp)
+#plt.plot(x_clim,climatological_values,label = 'Climatological values')
+#plt.plot(timeintoout-offset,pseudodischarge,'o',label = 'Pseudodischarge (Killworth)')
+#plt.plot(xnew-offset,ynew,label = 'Daily values')
+#plt.grid ()
+#plt.xlim(1,len(climatological_values)-1)
+#plt.ylabel ('River discharge [kg/m2/s]')
+#plt.xlabel ('Days of the year')
+#plt.legend() 
+## Save and close 
+#plt.savefig(plotname)
+#plt.clf()
 #-------------------------------------
 # Write runoff values and name of the river to the new file
 # Open the file and read the vars
 output_daily = NC.Dataset(daily_rivers,'r+')
+#NC.Dataset(daily_rivers, 'w', format='NETCDF4')
 # Read variable and modify it
 runoff = output_daily.variables[runoff_var][:]
 runoff[:,river_lat,river_lon]=ynew[:]
-output_daily.close()
+# TMP
+clim_1y_tmp=  output_daily.variables['clim_runoff'][:]
+# Close the file
+output_daily.to_netcdf()
+
+# TMP TEST
+output_daily = NC.Dataset(daily_rivers,'r')
+runoff = output_daily.variables[runoff_var][:]
+clim_1y_tmp=  output_daily.variables['clim_runoff'][:]
+print ('PROVA ', len(runoff[:,river_lat,river_lon]), len(clim_1y_tmp[:,river_lat,river_lon]))
+print ('PROVA ', runoff[:,river_lat,river_lon], clim_1y_tmp[:,river_lat,river_lon])
 #################################################################

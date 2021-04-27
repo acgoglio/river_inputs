@@ -84,9 +84,14 @@ river_prename=sys.argv[11]
 #runoff_var='sorunoff'
 #daily_rivers='runoff_1d_nomask_'+yeartocompute+'.nc'
 #clim_runoff_var='clim_runoff'
-runoff_var=sys.argv[12]
-daily_rivers=sys.argv[13]
-clim_runoff_var=sys.argv[14]
+daily_rivers=sys.argv[12]
+runoff_var=sys.argv[13]
+clim_1m_runoff_var=sys.argv[14]
+clim_1d_runoff_var=sys.argv[15]
+# Outfile Dimensions names 
+lat_idx=sys.argv[16]
+lon_idx=sys.argv[17]
+time_idx=sys.argv[18]
 
 ########################################################
 # DO NOT CHANGE THE CODE BELOW THIS LINE!!!
@@ -200,11 +205,21 @@ for idx_outarr,idx_date in enumerate(daterange):
                          print ('OBS not found: value from climatology!')
                           
 
-# Open the outfile with climatological values 
-# Open the file 
-output_daily = NC.Dataset(daily_rivers,'r+')
-# Read the field to be modified
-runoff = output_daily.variables[runoff_var][:]
+# Open the outfile with climatological values and read these
+output_daily = NC.Dataset(daily_rivers,'r')
+clim_1d_runoff=output_daily.variables[clim_1d_runoff_var][:]
+clim_1m_runoff=output_daily.variables[clim_1m_runoff_var][:]
+# Inizialize the new field to the daily clim
+new_field=clim_1d_runoff[:]
+# close 
+output_daily.close()
+print ('prova finale',clim_1d_runoff[:])
+
+# Open the file to write the Po obs 
+output_daily = NC.Dataset(daily_rivers,'r+') 
+# Build the new field
+runoff = output_daily.createVariable(runoff_var, 'f4', (time_idx, lat_idx , lon_idx,))
+runoff.units = 'kg/m2/seconds'
 
 # Loop on Po branches in csv file
 print ('Working on sigle Po river branches..')
@@ -240,23 +255,23 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
                print ('branch_runoff ',branch_runoff)
 
                # TMP: and store the daily and monthly clim values for the plot!
-               clim_1d_runoff=runoff[:,int(branch_lat_idx),int(branch_lon_idx)]
-               clim_1y_runoff=output_daily.variables[clim_runoff_var][:,int(branch_lat_idx),int(branch_lon_idx)] 
-               print ('clim_1d_runoff',clim_1d_runoff)
+               clim_1d_runoff_branch=clim_1d_runoff[:,int(branch_lat_idx),int(branch_lon_idx)]
+               clim_1m_runoff_branch=clim_1m_runoff[:,int(branch_lat_idx),int(branch_lon_idx)] 
+               print ('clim_1d_runoff',len(clim_1d_runoff_branch))
+               print ('clim_1m_runoff',len(clim_1m_runoff_branch))
 
                # If not nan modify the field in the netcdf file and close it
                for idx_out in range (0,len(branch_runoff)):
                   if branch_runoff[idx_out] != 'nan':
-                     runoff[idx_out,int(branch_lat_idx),int(branch_lon_idx)]=branch_runoff[idx_out]
-
+                     new_field[idx_out,int(branch_lat_idx),int(branch_lon_idx)]=branch_runoff[idx_out]
                # Plot 
                plotname='obsclim_'+river_prename+branch_name+'_'+str(yeartocompute)+'.png'
                plt.figure(figsize=(18,12))
                plt.rc('font', size=16)
                plt.title ('Climatological values Vs Obs --- River: '+river_prename+branch_name+'--- Year: '+str(yeartocompute))
-               plt.plot(clim_1y_runoff,label = 'Climatological monthly values')
-               plt.plot(clim_1d_runoff,label = 'Killworth daily values')
-               plt.plot(runoff[idx_out,int(branch_lat_idx),int(branch_lon_idx)],label = 'OBS')
+               plt.plot(clim_1m_runoff_branch[:],label = 'Climatological monthly values')
+               plt.plot(clim_1d_runoff_branch[:],label = 'Killworth daily values')
+               plt.plot(new_field[:,int(branch_lat_idx),int(branch_lon_idx)],label = 'OBS')
                plt.grid ()
                #plt.xlim(1,len(climatological_values)-1)
                plt.ylabel ('River runoff [kg/m2/s]')
@@ -267,5 +282,8 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
                plt.clf()
 else:
    print ('ERROR: Check mesh_mask and info csv files! ')
+
+# Write the new field to the netCDF
+runoff[:]=new_field[:]
 # Close the mod outfile
 output_daily.close()

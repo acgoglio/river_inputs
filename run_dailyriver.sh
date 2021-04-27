@@ -65,7 +65,8 @@ LON_2D='nav_lon'
 MASK_VAR='river_msk'
 RUNOFF_VAR='sorunoff'
 SALINITY_VAR='s_river'
-CLIM_RUNOFF_VAR='clim_runoff'
+CLIM_1M_RUNOFF_VAR='clim_monthly_runoff'
+CLIM_1D_RUNOFF_VAR='clim_daily_runoff'
 NAME_VAR='river_name'
 
 # Executables:
@@ -148,9 +149,9 @@ for TOBERM in $( ls clim_*.txt); do
     rm  ${TOBERM}
 done
 
-echo "I am going to extract climatological values from input file: $MONTHLY_RIVERS and built the output file: $DAILY_RIVERS ..."
+echo "I am going to extract climatological values from input file: $MONTHLY_RIVERS and built the output file template: ${DAILY_RIVERS}_temp ..."
 # Run the code wich needs as args input and output names + num of days + all the dimension and variables names of input and output fields
-python $EXE_CLIM $MONTHLY_RIVERS $DAILY_RIVERS $TOT_DOY $LAT_IDX $LON_IDX $TIME_IDX $LAT_2D $LON_2D $MASK_VAR $RUNOFF_VAR $SALINITY_VAR $CLIM_RUNOFF_VAR $NAME_VAR $STRING_NUM_OF_DAYS
+python $EXE_CLIM $MONTHLY_RIVERS ${DAILY_RIVERS}_temp.nc $TOT_DOY $LAT_IDX $LON_IDX $TIME_IDX $LAT_2D $LON_2D $MASK_VAR $RUNOFF_VAR $SALINITY_VAR $CLIM_1M_RUNOFF_VAR $NAME_VAR $STRING_NUM_OF_DAYS
 echo "...Done!!"
 
 
@@ -243,16 +244,23 @@ EOF
     echo ".. Done"
   
     echo "I am doing the Interpolation and the plot..${RIVER_LAT} ${RIVER_LON} ${RIVER_NAME} ${DAILY_RIVERS} ${YEAR2COMPUTE} ${RUNOFF_VAR}"
-    python ${PY_INTERP2DAILY} ${RIVER_LAT} ${RIVER_LON} ${RIVER_NAME} ${DAILY_RIVERS} ${YEAR2COMPUTE} ${RUNOFF_VAR}
+    cp ${DAILY_RIVERS}_temp.nc ${DAILY_RIVERS}_tmp.nc
+    python ${PY_INTERP2DAILY} ${RIVER_LAT} ${RIVER_LON} ${RIVER_NAME} ${DAILY_RIVERS} ${YEAR2COMPUTE} ${CLIM_1D_RUNOFF_VAR} ${CLIM_1M_RUNOFF_VAR} ${LAT_IDX} ${LON_IDX} ${TIME_IDX}
+    mv ${DAILY_RIVERS}_tmp.nc ${DAILY_RIVERS}_upd.nc
     echo ".. Done"
 done
-
+# Remove the netcdf template
+rm ${DAILY_RIVERS}_temp.nc
+# Move the ultimate output to the final output file
+mv ${DAILY_RIVERS}_upd.nc ${DAILY_RIVERS}
 
 ################ PO RIVER OBS #############
 if [[ $PORIVER_OBS_FLAG == 1 ]]; then
    echo "I am going to extract, pre-process and sobstitute observed values for the Po river.. ${PY_PORIVER_OBS} ${WORKDIR} ${YEAR2COMPUTE} ${TOT_DOY} ${PO_INPUT_PATH} ${PO_INPUT_FILEPRE} ${PO_INPUT_FILEPOST} ${PO_INPUT_VARCODE} ${PO_INPUT_DAILY} ${MOD_MESHMASK} ${RIVER_INFO} ${PO_RIVER_PRENAME} ${RUNOFF_VAR} ${DAILY_RIVERS} ${CLIM_RUNOFF_VAR}"
-   cp ${DAILY_RIVERS} ${DAILY_RIVERS}_tmp
-   python ${PY_PORIVER_OBS} ${WORKDIR} ${YEAR2COMPUTE} ${TOT_DOY} ${PO_INPUT_PATH} ${PO_INPUT_FILE_PRE} ${PO_INPUT_FILE_POST} ${PO_INPUT_VARCODE} ${PO_INPUT_DAILY} ${MOD_MESHMASK} ${RIVER_INFO} ${PO_RIVER_PRENAME} ${RUNOFF_VAR} ${DAILY_RIVERS} ${CLIM_RUNOFF_VAR}
+   mv ${DAILY_RIVERS} ${DAILY_RIVERS}_POtmp.nc
+   python ${PY_PORIVER_OBS} ${WORKDIR} ${YEAR2COMPUTE} ${TOT_DOY} ${PO_INPUT_PATH} ${PO_INPUT_FILE_PRE} ${PO_INPUT_FILE_POST} ${PO_INPUT_VARCODE} ${PO_INPUT_DAILY} ${MOD_MESHMASK} ${RIVER_INFO} ${PO_RIVER_PRENAME} ${DAILY_RIVERS}_POtmp.nc ${RUNOFF_VAR} ${CLIM_1M_RUNOFF_VAR} ${CLIM_1D_RUNOFF_VAR} ${LAT_IDX} ${LON_IDX} ${TIME_IDX}
    echo ".. Done"
+   # Move the ultimate output to the final output file
+   mv ${DAILY_RIVERS}_POtmp.nc ${DAILY_RIVERS}
 fi
 ######################

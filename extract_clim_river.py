@@ -53,7 +53,7 @@ lon_2d=sys.argv[8]
 mask_var=sys.argv[9]
 runoff_var=sys.argv[10]
 salinity_var=sys.argv[11]
-clim_runoff_var=sys.argv[12]
+clim_1m_runoff_var=sys.argv[12]
 river_name=sys.argv[13]
 
 # Open the file and read the vars
@@ -107,10 +107,7 @@ times_new = ds.createVariable(time_idx, 'f4', (time_idx,))
 lats_new[:,:] = lats[:,:]
 lons_new[:,:] = lons[:,:]
 
-runoff_new = ds.createVariable(runoff_var, 'f4', (time_idx, lat_idx , lon_idx,))
-runoff_new.units = 'kg/m2/seconds'
-
-clim_runoff = ds.createVariable(clim_runoff_var, 'f4', (time_idx, lat_idx , lon_idx,))
+clim_runoff = ds.createVariable(clim_1m_runoff_var, 'f4', (time_idx, lat_idx , lon_idx,))
 clim_runoff.units = 'kg/m2/seconds'
 
 salinity_new = ds.createVariable(salinity_var, 'f4', (time_idx, lat_idx , lon_idx,))
@@ -129,12 +126,10 @@ day_whole_step=0
 month_whole_step=0
 for monthlen_step in days_per_month:
     for day_step in range (0,int(monthlen_step)):
-        runoff_new[day_whole_step,:,:]=runoff[month_whole_step,:,:]
+        clim_runoff[day_whole_step,:,:]=runoff[month_whole_step,:,:]
         salinity_new[day_whole_step,:,:]=salinity[month_whole_step,:,:]
         day_whole_step=day_whole_step+1
     month_whole_step=month_whole_step+1
-
-clim_runoff[:,:,:]=runoff_new[:,:,:]
 
 ds.close()
 #################################################################

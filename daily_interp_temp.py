@@ -8,6 +8,7 @@ warnings.filterwarnings("ignore") # Avoid warnings
 import matplotlib.pyplot as plt
 import numpy as np
 import netCDF4 as NC
+import os
 import shutil
 #from scipy.optimize import curve_fit
 from scipy import stats
@@ -41,11 +42,16 @@ river_lon=int(sys.argv[2])
 river_name=sys.argv[3]
 # Name of the new file
 daily_rivers=sys.argv[4]
-print ('I am writing the daily runoff to file: ',daily_rivers)
+print ('I am writing the daily runoff to file: ',daily_rivers,'_tmp')
 # Year
 year2comp=sys.argv[5]
-# Field to be modified
-runoff_var=sys.argv[6]
+# Field to be read and written
+clim_1d_runoff_var=sys.argv[6]
+clim_1m_runoff_var=sys.argv[7]
+# Outfile Dimensions names 
+lat_idx=sys.argv[8]
+lon_idx=sys.argv[9]
+time_idx=sys.argv[10]
 
 #-------------------------------------
 # Time interpolation
@@ -75,21 +81,49 @@ print('Year len: ',len(ynew))
 #plt.clf()
 #-------------------------------------
 # Write runoff values and name of the river to the new file
-# Open the file and read the vars
-output_daily = NC.Dataset(daily_rivers,'r+')
-#NC.Dataset(daily_rivers, 'w', format='NETCDF4')
-# Read variable and modify it
-runoff = output_daily.variables[runoff_var][:]
-runoff[:,river_lat,river_lon]=ynew[:]
-# TMP
-clim_1y_tmp=  output_daily.variables['clim_runoff'][:]
-# Close the file
-output_daily.to_netcdf()
+# If there is a tmp file open it and read the field
+upd_file=daily_rivers+'_upd.nc'
+tmp_file=daily_rivers+'_tmp.nc'
+if os.path.exists(upd_file):
+   upd_daily=NC.Dataset(upd_file,'r')
+   upd_runoff=upd_daily.variables[clim_1d_runoff_var][:]
+   upd_daily.close()
+   # Open the new file template and add the new var
+   tmp_daily = NC.Dataset(tmp_file,'r+')
+   # Add the new daily clim field
+   tmp_runoff = tmp_daily.createVariable(clim_1d_runoff_var, 'f4', (time_idx, lat_idx , lon_idx,))
+   tmp_runoff.units = 'kg/m2/seconds'
+   # Put the values in the field adding the new river
+   tmp_field=upd_runoff
+   tmp_field[:,river_lat,river_lon]=ynew[:]
+   tmp_runoff[:]=tmp_field[:]
+   # close the files
+   tmp_daily.close()
+# Otherwise (first occurence) copy the monthly clim
+else:
+   # Read monthly clim
+   tmp_daily = NC.Dataset(tmp_file,'r')
+   upd_runoff=tmp_daily.variables[clim_1m_runoff_var][:]
+   tmp_daily.close()
+   # Open the new file template and add the new var
+   tmp_daily = NC.Dataset(tmp_file,'r+')
+   # Add the new daily clim field
+   tmp_runoff = tmp_daily.createVariable(clim_1d_runoff_var, 'f4', (time_idx, lat_idx , lon_idx,))
+   tmp_runoff.units = 'kg/m2/seconds'
+   # Put the monthly clim values in the field adding the new river
+   tmp_field=upd_runoff
+   tmp_field[:,river_lat,river_lon]=ynew[:]
+   tmp_runoff[:]=tmp_field[:]
+   #close the files
+   tmp_daily.close()
 
-# TMP TEST
-output_daily = NC.Dataset(daily_rivers,'r')
-runoff = output_daily.variables[runoff_var][:]
-clim_1y_tmp=  output_daily.variables['clim_runoff'][:]
-print ('PROVA ', len(runoff[:,river_lat,river_lon]), len(clim_1y_tmp[:,river_lat,river_lon]))
-print ('PROVA ', runoff[:,river_lat,river_lon], clim_1y_tmp[:,river_lat,river_lon])
+# TMP
+tmp_daily = NC.Dataset(tmp_file,'r')
+daily=tmp_daily.variables[clim_1d_runoff_var][:]
+monthly=tmp_daily.variables[clim_1m_runoff_var][:]
+print ('prova daily' ,daily)
+print ('prova daily' ,tmp_runoff[:])
+print ('prova monthly' ,monthly)
+tmp_daily.close()
+
 #################################################################

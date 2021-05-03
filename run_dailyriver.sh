@@ -14,7 +14,7 @@ module purge
 echo "*********** Daily river input 4 EAS System ***********"
 ####################### SET THE FOLLOWING VARS: ############################################
 # Year
-YEAR2COMPUTE=2020
+YEAR2COMPUTE=2015
 
 # src directory (path of this script!)  workdir and your virtual environment
 SRCDIR="/users_home/oda/ag15419/river_inputs/Killworth/"
@@ -38,7 +38,7 @@ PO_RIVER_PRENAME='Po_'
 # Path of 30m arpae obs and code of runoff field in the database 
 PO_INPUT_PATH='/data/oda/ag15419/RIVERS_DATA/PO/30m/'
 if [[ $YEAR2COMPUTE -lt 2020 ]]; then
-   PO_INPUT_FILE_PRE=''
+   PO_INPUT_FILE_PRE='NAN'
    PO_INPUT_FILE_POST='-ingv2.txt'
 else
    PO_INPUT_FILE_PRE='pontelagoscuro_'
@@ -256,7 +256,7 @@ mv ${DAILY_RIVERS}_upd.nc ${DAILY_RIVERS}
 
 ################ PO RIVER OBS #############
 if [[ $PORIVER_OBS_FLAG == 1 ]]; then
-   echo "I am going to extract, pre-process and sobstitute observed values for the Po river.. ${PY_PORIVER_OBS} ${WORKDIR} ${YEAR2COMPUTE} ${TOT_DOY} ${PO_INPUT_PATH} ${PO_INPUT_FILEPRE} ${PO_INPUT_FILEPOST} ${PO_INPUT_VARCODE} ${PO_INPUT_DAILY} ${MOD_MESHMASK} ${RIVER_INFO} ${PO_RIVER_PRENAME} ${RUNOFF_VAR} ${DAILY_RIVERS} ${CLIM_RUNOFF_VAR}"
+   echo "I am going to extract, pre-process and sobstitute observed values for the Po river.. python ${PY_PORIVER_OBS} ${WORKDIR} ${YEAR2COMPUTE} ${TOT_DOY} ${PO_INPUT_PATH} ${PO_INPUT_FILE_PRE} ${PO_INPUT_FILE_POST} ${PO_INPUT_VARCODE} ${PO_INPUT_DAILY} ${MOD_MESHMASK} ${RIVER_INFO} ${PO_RIVER_PRENAME} ${DAILY_RIVERS}_POtmp.nc ${RUNOFF_VAR} ${CLIM_1M_RUNOFF_VAR} ${CLIM_1D_RUNOFF_VAR} ${LAT_IDX} ${LON_IDX} ${TIME_IDX}"
    mv ${DAILY_RIVERS} ${DAILY_RIVERS}_POtmp.nc
    python ${PY_PORIVER_OBS} ${WORKDIR} ${YEAR2COMPUTE} ${TOT_DOY} ${PO_INPUT_PATH} ${PO_INPUT_FILE_PRE} ${PO_INPUT_FILE_POST} ${PO_INPUT_VARCODE} ${PO_INPUT_DAILY} ${MOD_MESHMASK} ${RIVER_INFO} ${PO_RIVER_PRENAME} ${DAILY_RIVERS}_POtmp.nc ${RUNOFF_VAR} ${CLIM_1M_RUNOFF_VAR} ${CLIM_1D_RUNOFF_VAR} ${LAT_IDX} ${LON_IDX} ${TIME_IDX}
    echo ".. Done"

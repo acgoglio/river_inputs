@@ -43,51 +43,39 @@ import re # grep in python
 #---------------------
 # Work dir path:
 # WARNING: the inputs must be here, the outputs will be moved to subdirs   
-#workdir= '/work/oda/ag15419/tmp/river_inputs/PO_daily/' 
 workdir=sys.argv[1]
 
 # Year infos
-#yeartocompute=2020
-#days_of_year=366
 yeartocompute=int(sys.argv[2])
 days_of_year=int(sys.argv[3])
 
-# input files:
-#arpae_input_path='/data/oda/ag15419/RIVERS_DATA/PO/30m/'
+# input files infos:
 arpae_input_path=sys.argv[4]
 
-##arpae_input_filepre=''
-##arpae_input_filepost='-ingv2.txt'
-#arpae_input_filepre='pontelagoscuro_'
-#arpae_input_filepost='.txt'
 arpae_input_filepre=sys.argv[5]
+if arpae_input_filepre=='NAN':
+   arpae_input_filepre=''
+
 arpae_input_filepost=sys.argv[6]
 
-#arpae_input_varcode=512
-#arpae_input_daily='/data/oda/ag15419/RIVERS_DATA/PO/daily/Pontelagoscuro_daily_2015_2021.csv'
 arpae_input_varcode=int(sys.argv[7])
 arpae_input_daily=sys.argv[8]
 
 # NEMO mesh mask
-#mod_meshmask='/work/oda/ag15419/PHYSW24_DATA/TIDES/DATA0/mesh_mask.nc'
 mod_meshmask=sys.argv[9]
 
 # Csv path/file
-#csv_infofile='/users_home/oda/ag15419/river_inputs/Killworth/rivers_info.csv'
 csv_infofile=sys.argv[10]
 csv_infofile=workdir+'/'+csv_infofile
 # River prename (in csv file)
-#river_prename='Po_'
 river_prename=sys.argv[11]
 
 # Outfile infos 
-#runoff_var='sorunoff'
-#daily_rivers='runoff_1d_nomask_'+yeartocompute+'.nc'
-#clim_runoff_var='clim_runoff'
 daily_rivers=sys.argv[12]
 runoff_var=sys.argv[13]
 clim_1m_runoff_var=sys.argv[14]
 clim_1d_runoff_var=sys.argv[15]
+
 # Outfile Dimensions names 
 lat_idx=sys.argv[16]
 lon_idx=sys.argv[17]
@@ -209,22 +197,22 @@ for idx_outarr,idx_date in enumerate(daterange):
 output_daily = NC.Dataset(daily_rivers,'r')
 clim_1d_runoff=output_daily.variables[clim_1d_runoff_var][:]
 clim_1m_runoff=output_daily.variables[clim_1m_runoff_var][:]
+
 # Inizialize the new field to the daily clim
 new_field=clim_1d_runoff[:]
+
 # close 
 output_daily.close()
-print ('prova finale',clim_1d_runoff[:])
 
 # Open the file to write the Po obs 
 output_daily = NC.Dataset(daily_rivers,'r+') 
-# Build the new field
+# Build the new field:/new_f
 runoff = output_daily.createVariable(runoff_var, 'f4', (time_idx, lat_idx , lon_idx,))
 runoff.units = 'kg/m2/seconds'
 
 # Loop on Po branches in csv file
 print ('Working on sigle Po river branches..')
 # Read the perc per branch and split the whole discharge among these
-print ('prova ',csv_infofile,mod_meshmask)
 if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
       print ('Found mesh_mask and info csv files!')
       # Open the mesh mask file
@@ -244,38 +232,36 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
 
                # split the discharge 
                branch_fromobs=np.array(dailyvals_fromobs)*(float(branch_perc)/100.0)
-               #branch_fromobs=np.where(dailyvals_fromobs!='nan',np.array(dailyvals_fromobs)*(float(branch_perc)/100.0),dailyvals_fromobs)
 
                # From m**3/s to kg/m**2/s 
                branch_e1t=mod_e1t[0,int(branch_lat_idx),int(branch_lon_idx)]
                branch_e2t=mod_e2t[0,int(branch_lat_idx),int(branch_lon_idx)]
-               #branch_runoff=1000.0*branch_fromobs/(branch_e1t*branch_e2t)               
                branch_runoff=np.where(branch_fromobs!=0.000000000,1000.0*branch_fromobs/(branch_e1t*branch_e2t),'nan')
-               #branch_runoff=np.where(branch_fromobs!='nan',1000.0*branch_fromobs/(branch_e1t*branch_e2t),branch_fromobs)
-               print ('branch_runoff ',branch_runoff)
 
                # TMP: and store the daily and monthly clim values for the plot!
                clim_1d_runoff_branch=clim_1d_runoff[:,int(branch_lat_idx),int(branch_lon_idx)]
                clim_1m_runoff_branch=clim_1m_runoff[:,int(branch_lat_idx),int(branch_lon_idx)] 
-               print ('clim_1d_runoff',len(clim_1d_runoff_branch))
-               print ('clim_1m_runoff',len(clim_1m_runoff_branch))
 
+               # Plot 
+               plotname='obsclim_'+branch_name+'_'+str(yeartocompute)+'.png'
+               plt.figure(figsize=(18,12))
+               plt.rc('font', size=16)
+               plt.title ('Climatological values Vs Obs --- River: '+branch_name+'--- Year: '+str(yeartocompute))
+               # 
+               plt.plot(daterange,clim_1m_runoff_branch[:],label = 'Climatological monthly values')
+               plt.plot(daterange,clim_1d_runoff_branch[:],label = 'Killworth daily values')
+
+               # Build the new field
                # If not nan modify the field in the netcdf file and close it
                for idx_out in range (0,len(branch_runoff)):
                   if branch_runoff[idx_out] != 'nan':
                      new_field[idx_out,int(branch_lat_idx),int(branch_lon_idx)]=branch_runoff[idx_out]
-               # Plot 
-               plotname='obsclim_'+river_prename+branch_name+'_'+str(yeartocompute)+'.png'
-               plt.figure(figsize=(18,12))
-               plt.rc('font', size=16)
-               plt.title ('Climatological values Vs Obs --- River: '+river_prename+branch_name+'--- Year: '+str(yeartocompute))
-               plt.plot(clim_1m_runoff_branch[:],label = 'Climatological monthly values')
-               plt.plot(clim_1d_runoff_branch[:],label = 'Killworth daily values')
-               plt.plot(new_field[:,int(branch_lat_idx),int(branch_lon_idx)],label = 'OBS')
+
+               # Add the new field to the plot
+               plt.plot(daterange,new_field[:,int(branch_lat_idx),int(branch_lon_idx)],label = 'OBS/Daily clim values')
                plt.grid ()
-               #plt.xlim(1,len(climatological_values)-1)
                plt.ylabel ('River runoff [kg/m2/s]')
-               plt.xlabel ('Days of the year')
+               plt.xlabel ('Date')
                plt.legend()
                # Save and close 
                plt.savefig(plotname)
@@ -287,3 +273,39 @@ else:
 runoff[:]=new_field[:]
 # Close the mod outfile
 output_daily.close()
+#
+# Validation check of the outfile
+print ('I am going to plot the diagnostic plots to validate the outfile: ',daily_rivers)
+# Open the outfile 
+output_daily = NC.Dataset(daily_rivers,'r')
+oldout=output_daily.variables[clim_1m_runoff_var][:]
+newout=output_daily.variables[runoff_var][:]
+
+with open(csv_infofile) as infile:
+     for line in infile:
+       if line[0] != '#':
+         river_name=line.split(';')[5]
+         river_lat_idx=line.split(';')[0]
+         river_lon_idx=line.split(';')[1]
+         print ('I am working on ', river_name,river_lat_idx,river_lon_idx)
+
+
+         # Plot 
+         plotname='diagplot_'+river_name+'_'+str(yeartocompute)+'.png'
+         plt.figure(figsize=(18,12))
+         plt.rc('font', size=16)
+         plt.title ('Old river forcing Vs New river forcing --- River: '+river_name+'--- Year: '+str(yeartocompute))
+         # 
+         plt.plot(daterange,oldout[:,int(river_lat_idx),int(river_lon_idx)],label = 'Old river forcing')
+         plt.plot(daterange,newout[:,int(river_lat_idx),int(river_lon_idx)],'-o',label = 'New river forcing')
+         plt.grid ()
+         plt.ylabel ('River runoff [kg/m2/s]')
+         plt.xlabel ('Date')
+         plt.legend()
+         # Save and close 
+         plt.savefig(plotname)
+         plt.clf()
+
+# Close the outfile
+output_daily.close()
+

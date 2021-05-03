@@ -60,6 +60,7 @@ xnew = np.arange(nov_to_feb[1], np.sum(nov_to_feb[1:14]), 1.0)
 x_clim=np.arange(0, len(climatological_values), 1.0)
 ynew = f(xnew)
 print('Year len: ',len(ynew))
+
 #--------------------------------------
 ## Plots
 #offset=nov_to_feb[1]
@@ -121,9 +122,7 @@ else:
 tmp_daily = NC.Dataset(tmp_file,'r')
 daily=tmp_daily.variables[clim_1d_runoff_var][:]
 monthly=tmp_daily.variables[clim_1m_runoff_var][:]
-print ('prova daily' ,daily)
-print ('prova daily' ,tmp_runoff[:])
-print ('prova monthly' ,monthly)
+
 tmp_daily.close()
 
 #################################################################

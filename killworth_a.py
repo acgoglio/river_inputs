@@ -26,10 +26,6 @@ from numpy.linalg import inv
 #
 # Written: 12/04/2021
 #
-# This script reads the output (txt format) x_killworth_time_interpolation.exe
-# does the daily interpolation from monthly pseudodischarge 
-# and builds the NETCDF daily river input file for EAS System
-#
 ###################################################################
 # Input values (if you need this script inside a procedure 
 # modify the following lines to read the input as line args..)

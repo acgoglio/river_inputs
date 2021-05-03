@@ -33,7 +33,7 @@ from numpy.linalg import inv
 # List of 12 climatological monthly values
 monthly_clim_values=np.array([0.00679197,0.007085083,0.005436324,0.00553839,0.003909914,0.002531368,0.0017822298,0.0014603292,0.0021839512,0.0036325036,0.0052040587,0.0071086367])
 # Flag for leap years: if leap set leap_year=1, otherwise set leap_year=0 
-leap_year=0
+leap_year=1
 
 ###################################################################
 # PRE-PROC 
@@ -80,7 +80,6 @@ KA=np.zeros((12,12))
 
 for row_idx in range(0,12):
     for col_idx in range(0,12):
-        #print (row_idx,col_idx)
         # Diag (f el)
         if row_idx == col_idx :
            KA[row_idx,col_idx]=f[row_idx]
@@ -104,8 +103,8 @@ INV_KA=inv(np.matrix(KA))
 # Compute the pseudodischarges
 pseudodischarge=np.zeros(12)
 pseudodischarge=np.squeeze(np.array(INV_KA.dot(monthly_clim_values)))
-for idx_tmp in range(0,12):
-    print (pseudodischarge[idx_tmp])    
+#for idx_tmp in range(0,12):
+#    print (pseudodischarge[idx_tmp])    
 
 ####################################################################
 # STEP 2: FROM PSEUDODISCHERGE VALUES TO DAILY CLIMATOLOGICAL VALUES 
@@ -118,7 +117,6 @@ ext_pseudodischarge[0]=pseudodischarge[11]
 for old_arr in range(0,12):
     ext_pseudodischarge[old_arr+1]=pseudodischarge[old_arr]
 ext_pseudodischarge[13]=pseudodischarge[0]
-print ('prova', ext_pseudodischarge)
 
 # Half month days (dec to jan)
 timeintoout=[15,45,76,106,135,166,196,227,257,288,319,349,380,410]
@@ -129,6 +127,6 @@ ynew = f(xnew)
 
 # Print the output
 for idx_towrite in range(0,days_of_year):
-    print(idx_towrite,ynew[idx_towrite])
+    print(idx_towrite+1,ynew[idx_towrite])
 
 #################################################################

@@ -193,6 +193,12 @@ for idx_outarr,idx_date in enumerate(daterange):
                          print ('OBS not found: value from climatology!')
                           
 
+######################################
+# ------------------------------------
+# Write the Po obs to the netcdf file
+# ------------------------------------
+
+
 # Open the outfile with climatological values and read these
 output_daily = NC.Dataset(daily_rivers,'r')
 clim_1d_runoff=output_daily.variables[clim_1d_runoff_var][:]
@@ -203,6 +209,7 @@ new_field=clim_1d_runoff[:]
 
 # close 
 output_daily.close()
+
 
 # Open the file to write the Po obs 
 output_daily = NC.Dataset(daily_rivers,'r+') 
@@ -274,7 +281,11 @@ runoff[:]=new_field[:]
 # Close the mod outfile
 output_daily.close()
 #
-# Validation check of the outfile
+
+######################################
+# ------------------------------------
+# Check the whole outfile
+# ------------------------------------
 print ('I am going to plot the diagnostic plots to validate the outfile: ',daily_rivers)
 # Open the outfile 
 output_daily = NC.Dataset(daily_rivers,'r')

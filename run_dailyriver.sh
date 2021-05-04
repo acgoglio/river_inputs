@@ -14,11 +14,11 @@ module purge
 echo "*********** Daily river input 4 EAS System ***********"
 ####################### SET THE FOLLOWING VARS: ############################################
 # Year
-YEAR2COMPUTE=2015
+YEAR2COMPUTE=2017
 
 # src directory (path of this script!)  workdir and your virtual environment
 SRCDIR="/users_home/oda/ag15419/river_inputs/Killworth/"
-WORKDIR="/work/oda/ag15419/tmp/river_inputs/kill_obs"
+WORKDIR="/work/oda/ag15419/tmp/river_inputs/kill_efas/"
 
 # your virtual env
 YOUR_PY_ENV="mappyenv"
@@ -31,11 +31,13 @@ DAILY_RIVERS="runoff_1d_nomask_${YEAR2COMPUTE}.nc"
 MOD_MESHMASK="/work/oda/ag15419/PHYSW24_DATA/TIDES/DATA0/mesh_mask.nc"
 
 # -----PO River---------
+
 # Flag to sobstitute observed values to the climatological ones for the Po river (to activate set PORIVER_OBS_FLAG=1)
-PORIVER_OBS_FLAG=1
+PORIVER_OBS_FLAG=0
 # Prename of the Po river in the csv file
 PO_RIVER_PRENAME='Po_' 
-# Path of 30m arpae obs and code of runoff field in the database 
+# Path of 30m arpae obs and code of runoff field in the database
+# WARNING: if pre-name of the file is empty you should put 'NAN' 
 PO_INPUT_PATH='/data/oda/ag15419/RIVERS_DATA/PO/30m/'
 if [[ $YEAR2COMPUTE -lt 2020 ]]; then
    PO_INPUT_FILE_PRE='NAN'
@@ -45,14 +47,24 @@ else
    PO_INPUT_FILE_POST='.txt'
 fi
 PO_INPUT_VARCODE='512'
-
 # Path of 1 day arpae obs
 PO_INPUT_DAILY='/data/oda/ag15419/RIVERS_DATA/PO/daily/Pontelagoscuro_daily_2015_2021.csv'
+
+# -----EFAS Dataset---------
+
+# Flag to use EFAS Dataset where available instead of climatology (to activate set EFAS_FLAG=1)
+EFAS_FLAG=1
+# Path to time-series
+EFAS_INPUT_PATH='/users_home/oda/ag15419/river_inputs/Killworth/'
+# Pre and post name of the file storing the EFAS time series
+# WARNING: if pre-name of the file is empty you should put 'NAN'
+EFAS_INPUT_FILE_PRE='NAN'
+EFAS_INPUT_FILE_POST='.txt'
 
 ###########################################################################################
 
 # Csv file with rivers info
-RIVER_INFO="rivers_info.csv"
+RIVER_INFO="rivers_info_prova.csv"
 
 # I/O nc dimensions and variables names
 # Dimensions names 
@@ -80,6 +92,9 @@ PY_INTERP2DAILY_TEMP="daily_interp_temp.py" # daily_interp_temp_12.py
 PY_INTERP2DAILY="daily_${YEAR2COMPUTE}.py" # daily_${YEAR2COMPUTE}_12.py
 # 4) Py script to pre-process Po river obs and substitute the time series in the out file
 PY_PORIVER_OBS="po_river_daily.py"
+# 5) Py script to substitute the EFAS time seies where available
+PY_EFAS="efas.py"
+
 
 ############################ DO NOT CHANGE THE CODE BENEATH THIS LINE ########################## 
 # Load the environment for step 1
@@ -90,7 +105,7 @@ source activate $YOUR_PY_ENV
 # Check the existence of the workdir and mv into it
 if [[ -d $WORKDIR ]]; then
    echo "I am linking files to work dir: $WORKDIR.."
-   for TOBELINKED in $EXE_CLIM $EXE_KILLWORTH_TEMP $PY_INTERP2DAILY_TEMP $RIVER_INFO $PY_PORIVER_OBS ; do 
+   for TOBELINKED in $EXE_CLIM $EXE_KILLWORTH_TEMP $PY_INTERP2DAILY_TEMP $RIVER_INFO $PY_PORIVER_OBS $PY_EFAS ; do 
        ln -svf ${SRCDIR}/${TOBELINKED} ${WORKDIR}/
    done
    echo "I am moving to work dir: $WORKDIR.."
@@ -256,11 +271,38 @@ mv ${DAILY_RIVERS}_upd.nc ${DAILY_RIVERS}
 
 ################ PO RIVER OBS #############
 if [[ $PORIVER_OBS_FLAG == 1 ]]; then
-   echo "I am going to extract, pre-process and sobstitute observed values for the Po river.. python ${PY_PORIVER_OBS} ${WORKDIR} ${YEAR2COMPUTE} ${TOT_DOY} ${PO_INPUT_PATH} ${PO_INPUT_FILE_PRE} ${PO_INPUT_FILE_POST} ${PO_INPUT_VARCODE} ${PO_INPUT_DAILY} ${MOD_MESHMASK} ${RIVER_INFO} ${PO_RIVER_PRENAME} ${DAILY_RIVERS}_POtmp.nc ${RUNOFF_VAR} ${CLIM_1M_RUNOFF_VAR} ${CLIM_1D_RUNOFF_VAR} ${LAT_IDX} ${LON_IDX} ${TIME_IDX}"
+   echo "I am going to extract, pre-process and sobstitute observed values for the Po river.."
+   # Define the name of the output field storing the values
+   if [[ $EFAS_FLAG == 1 ]]; then
+      NEXT_RUNOFF_VAR="po_${RUNOFF_VAR}"
+   else
+      NEXT_RUNOFF_VAR=${RUNOFF_VAR}
+   fi
+
    mv ${DAILY_RIVERS} ${DAILY_RIVERS}_POtmp.nc
-   python ${PY_PORIVER_OBS} ${WORKDIR} ${YEAR2COMPUTE} ${TOT_DOY} ${PO_INPUT_PATH} ${PO_INPUT_FILE_PRE} ${PO_INPUT_FILE_POST} ${PO_INPUT_VARCODE} ${PO_INPUT_DAILY} ${MOD_MESHMASK} ${RIVER_INFO} ${PO_RIVER_PRENAME} ${DAILY_RIVERS}_POtmp.nc ${RUNOFF_VAR} ${CLIM_1M_RUNOFF_VAR} ${CLIM_1D_RUNOFF_VAR} ${LAT_IDX} ${LON_IDX} ${TIME_IDX}
+   python ${PY_PORIVER_OBS} ${WORKDIR} ${YEAR2COMPUTE} ${TOT_DOY} ${PO_INPUT_PATH} ${PO_INPUT_FILE_PRE} ${PO_INPUT_FILE_POST} ${PO_INPUT_VARCODE} ${PO_INPUT_DAILY} ${MOD_MESHMASK} ${RIVER_INFO} ${PO_RIVER_PRENAME} ${DAILY_RIVERS}_POtmp.nc ${NEXT_RUNOFF_VAR} ${CLIM_1M_RUNOFF_VAR} ${CLIM_1D_RUNOFF_VAR} ${LAT_IDX} ${LON_IDX} ${TIME_IDX}
    echo ".. Done"
    # Move the ultimate output to the final output file
    mv ${DAILY_RIVERS}_POtmp.nc ${DAILY_RIVERS}
 fi
+
+
+################ EFAS #############
+if [[ $EFAS_FLAG == 1 ]]; then
+   echo "I am going to substitute EFAS values where available.. python ${PY_EFAS} ${WORKDIR} ${YEAR2COMPUTE} ${TOT_DOY} ${EFAS_INPUT_PATH} ${EFAS_INPUT_FILE_PRE} ${EFAS_INPUT_FILE_POST} ${MOD_MESHMASK} ${RIVER_INFO} ${DAILY_RIVERS}_EFAStmp.nc ${RUNOFF_VAR} ${PRE_RUNOFF_VAR} ${LAT_IDX} ${LON_IDX} ${TIME_IDX}"
+
+   # Define the name of the input field storing the values
+   if [[ $PORIVER_OBS_FLAG == 1 ]]; then
+      PRE_RUNOFF_VAR="po_${RUNOFF_VAR}"
+   else
+      PRE_RUNOFF_VAR=${CLIM_1D_RUNOFF_VAR}
+   fi
+
+   mv ${DAILY_RIVERS} ${DAILY_RIVERS}_EFAStmp.nc
+   python ${PY_EFAS} ${WORKDIR} ${YEAR2COMPUTE} ${TOT_DOY} ${EFAS_INPUT_PATH} ${EFAS_INPUT_FILE_PRE} ${EFAS_INPUT_FILE_POST} ${MOD_MESHMASK} ${RIVER_INFO} ${DAILY_RIVERS}_EFAStmp.nc ${RUNOFF_VAR} ${PRE_RUNOFF_VAR} ${LAT_IDX} ${LON_IDX} ${TIME_IDX}
+   echo ".. Done"
+   # Move the ultimate output to the final output file
+   mv ${DAILY_RIVERS}_EFAStmp.nc ${DAILY_RIVERS}
+fi
 ######################
+

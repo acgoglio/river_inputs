@@ -235,44 +235,48 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
                branch_lat_idx=line.split(';')[0]
                branch_lon_idx=line.split(';')[1]
                branch_perc=line.split(';')[9]
-               print (branch_name,branch_lat_idx,branch_lon_idx,branch_perc)
 
-               # split the discharge 
-               branch_fromobs=np.array(dailyvals_fromobs)*(float(branch_perc)/100.0)
-
-               # From m**3/s to kg/m**2/s 
-               branch_e1t=mod_e1t[0,int(branch_lat_idx),int(branch_lon_idx)]
-               branch_e2t=mod_e2t[0,int(branch_lat_idx),int(branch_lon_idx)]
-               branch_runoff=np.where(branch_fromobs!=0.000000000,1000.0*branch_fromobs/(branch_e1t*branch_e2t),'nan')
-
-               # TMP: and store the daily and monthly clim values for the plot!
-               clim_1d_runoff_branch=clim_1d_runoff[:,int(branch_lat_idx),int(branch_lon_idx)]
-               clim_1m_runoff_branch=clim_1m_runoff[:,int(branch_lat_idx),int(branch_lon_idx)] 
-
-               # Plot 
-               plotname='obsclim_'+branch_name+'_'+str(yeartocompute)+'.png'
-               plt.figure(figsize=(18,12))
-               plt.rc('font', size=16)
-               plt.title ('Climatological values Vs Obs --- River: '+branch_name+'--- Year: '+str(yeartocompute))
-               # 
-               plt.plot(daterange,clim_1m_runoff_branch[:],label = 'Climatological monthly values')
-               plt.plot(daterange,clim_1d_runoff_branch[:],label = 'Killworth daily values')
-
-               # Build the new field
-               # If not nan modify the field in the netcdf file and close it
-               for idx_out in range (0,len(branch_runoff)):
-                  if branch_runoff[idx_out] != 'nan':
-                     new_field[idx_out,int(branch_lat_idx),int(branch_lon_idx)]=branch_runoff[idx_out]
-
-               # Add the new field to the plot
-               plt.plot(daterange,new_field[:,int(branch_lat_idx),int(branch_lon_idx)],label = 'OBS/Daily clim values')
-               plt.grid ()
-               plt.ylabel ('River runoff [kg/m2/s]')
-               plt.xlabel ('Date')
-               plt.legend()
-               # Save and close 
-               plt.savefig(plotname)
-               plt.clf()
+               # If branch_perc is != 0 do the substitution 
+               # Otherwise it means that the branch values comes form different sources
+               if float(branch_perc) != 0:
+                  print (branch_name,branch_lat_idx,branch_lon_idx,branch_perc)
+   
+                  # split the discharge 
+                  branch_fromobs=np.array(dailyvals_fromobs)*(float(branch_perc)/100.0)
+   
+                  # From m**3/s to kg/m**2/s 
+                  branch_e1t=mod_e1t[0,int(branch_lat_idx),int(branch_lon_idx)]
+                  branch_e2t=mod_e2t[0,int(branch_lat_idx),int(branch_lon_idx)]
+                  branch_runoff=np.where(branch_fromobs!=0.000000000,1000.0*branch_fromobs/(branch_e1t*branch_e2t),'nan')
+   
+                  # TMP: and store the daily and monthly clim values for the plot!
+                  clim_1d_runoff_branch=clim_1d_runoff[:,int(branch_lat_idx),int(branch_lon_idx)]
+                  clim_1m_runoff_branch=clim_1m_runoff[:,int(branch_lat_idx),int(branch_lon_idx)] 
+   
+                  # Plot 
+                  plotname='obsclim_'+branch_name+'_'+str(yeartocompute)+'.png'
+                  plt.figure(figsize=(18,12))
+                  plt.rc('font', size=16)
+                  plt.title ('Climatological values Vs Obs --- River: '+branch_name+'--- Year: '+str(yeartocompute))
+                  # 
+                  plt.plot(daterange,clim_1m_runoff_branch[:],label = 'Climatological monthly values')
+                  plt.plot(daterange,clim_1d_runoff_branch[:],label = 'Killworth daily values')
+   
+                  # Build the new field
+                  # If not nan modify the field in the netcdf file and close it
+                  for idx_out in range (0,len(branch_runoff)):
+                     if branch_runoff[idx_out] != 'nan':
+                        new_field[idx_out,int(branch_lat_idx),int(branch_lon_idx)]=branch_runoff[idx_out]
+   
+                  # Add the new field to the plot
+                  plt.plot(daterange,new_field[:,int(branch_lat_idx),int(branch_lon_idx)],label = 'OBS/Daily clim values')
+                  plt.grid ()
+                  plt.ylabel ('River runoff [kg/m2/s]')
+                  plt.xlabel ('Date')
+                  plt.legend()
+                  # Save and close 
+                  plt.savefig(plotname)
+                  plt.clf()
 else:
    print ('ERROR: Check mesh_mask and info csv files! ')
 

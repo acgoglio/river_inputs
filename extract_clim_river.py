@@ -23,6 +23,7 @@ from scipy import interpolate
 # annachiara.goglio@cmcc.it
 #
 # Written: 13/04/2021
+# Last mod: 05/05/2021
 #
 # This script reads the EAS system monthly river file
 # and extracts the climatological values to txt files

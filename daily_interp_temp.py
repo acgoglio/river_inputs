@@ -24,6 +24,7 @@ from scipy import interpolate
 # annachiara.goglio@cmcc.it
 #
 # Written: 12/04/2021
+# Last Mod: 05/05/2021
 #
 # This script reads the output (txt format) x_killworth_time_interpolation.exe
 # does the daily interpolation from monthly pseudodischarge 
@@ -40,18 +41,21 @@ nov_to_feb=([%NOV_TO_FEB_NUM_OF_DAYS%])
 river_lat=int(sys.argv[1])
 river_lon=int(sys.argv[2])
 river_name=sys.argv[3]
+river_num=sys.argv[4]
 # Name of the new file
-daily_rivers=sys.argv[4]
+daily_rivers=sys.argv[5]
 print ('I am writing the daily runoff to file: ',daily_rivers,'_tmp')
 # Year
-year2comp=sys.argv[5]
+year2comp=sys.argv[6]
 # Field to be read and written
-clim_1d_runoff_var=sys.argv[6]
-clim_1m_runoff_var=sys.argv[7]
+clim_1d_runoff_var=sys.argv[7]
+clim_1m_runoff_var=sys.argv[8]
+mask_var=sys.argv[9]
+name_var=sys.argv[10]
 # Outfile Dimensions names 
-lat_idx=sys.argv[8]
-lon_idx=sys.argv[9]
-time_idx=sys.argv[10]
+lat_idx=sys.argv[11]
+lon_idx=sys.argv[12]
+time_idx=sys.argv[13]
 
 #-------------------------------------
 # Time interpolation
@@ -88,6 +92,7 @@ tmp_file=daily_rivers+'_tmp.nc'
 if os.path.exists(upd_file):
    upd_daily=NC.Dataset(upd_file,'r')
    upd_runoff=upd_daily.variables[clim_1d_runoff_var][:]
+   upd_mask=upd_daily.variables[mask_var][:]
    upd_daily.close()
    # Open the new file template and add the new var
    tmp_daily = NC.Dataset(tmp_file,'r+')
@@ -98,6 +103,15 @@ if os.path.exists(upd_file):
    tmp_field=upd_runoff
    tmp_field[:,river_lat,river_lon]=ynew[:]
    tmp_runoff[:]=tmp_field[:]
+   #
+   # Add the river num or name new var
+   tmp_name = tmp_daily.createVariable(name_var, 'f4', (time_idx, lat_idx , lon_idx,))
+   tmp_name.units = 'river_num'
+   # Put the name of the river in the new field
+   tmp_field2=upd_mask
+   tmp_field2[:,river_lat,river_lon]=int(river_num)
+   tmp_name[:]=tmp_field2[:]
+   #
    # close the files
    tmp_daily.close()
 # Otherwise (first occurence) copy the monthly clim
@@ -105,6 +119,7 @@ else:
    # Read monthly clim
    tmp_daily = NC.Dataset(tmp_file,'r')
    upd_runoff=tmp_daily.variables[clim_1m_runoff_var][:]
+   upd_mask=tmp_daily.variables[mask_var][:]
    tmp_daily.close()
    # Open the new file template and add the new var
    tmp_daily = NC.Dataset(tmp_file,'r+')
@@ -115,14 +130,23 @@ else:
    tmp_field=upd_runoff
    tmp_field[:,river_lat,river_lon]=ynew[:]
    tmp_runoff[:]=tmp_field[:]
+   #
+   # Add the river name new var
+   tmp_name = tmp_daily.createVariable(name_var, 'f4', (time_idx, lat_idx , lon_idx,))
+   tmp_name.units = 'river_num'
+   # Put the name of the river in the new field
+   tmp_field2=upd_mask
+   tmp_field2[:,river_lat,river_lon]=int(river_num)
+   tmp_name[:]=tmp_field2[:]
+   #
    #close the files
    tmp_daily.close()
 
 # TMP
-tmp_daily = NC.Dataset(tmp_file,'r')
-daily=tmp_daily.variables[clim_1d_runoff_var][:]
-monthly=tmp_daily.variables[clim_1m_runoff_var][:]
+#tmp_daily = NC.Dataset(tmp_file,'r')
+#daily=tmp_daily.variables[clim_1d_runoff_var][:]
+#monthly=tmp_daily.variables[clim_1m_runoff_var][:]
 
-tmp_daily.close()
+#tmp_daily.close()
 
 #################################################################

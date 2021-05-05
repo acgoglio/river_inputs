@@ -160,7 +160,7 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
 
                # For discharges on multiple grid points 
                if efas_flag == 2:
-                  print ('Discharges on multiple grid points..')
+                  print ('Discharge on multiple grid points..')
 else:
    print ('ERROR: Check mesh_mask and info csv files! ')
 

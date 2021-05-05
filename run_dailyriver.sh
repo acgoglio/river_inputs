@@ -13,12 +13,14 @@ module purge
 
 echo "*********** Daily river input 4 EAS System ***********"
 ####################### SET THE FOLLOWING VARS: ############################################
+
+# -----Input infos---------
 # Year
-YEAR2COMPUTE=2017
+YEAR2COMPUTE=2015
 
 # src directory (path of this script!)  workdir and your virtual environment
 SRCDIR="/users_home/oda/ag15419/river_inputs/Killworth/"
-WORKDIR="/work/oda/ag15419/tmp/river_inputs/kill_efas/"
+WORKDIR="/work/oda/ag15419/tmp/river_inputs/kill_obs/"
 
 # your virtual env
 YOUR_PY_ENV="mappyenv"
@@ -30,7 +32,7 @@ DAILY_RIVERS="runoff_1d_nomask_${YEAR2COMPUTE}.nc"
 # NEMO mesh mask file (needed for Po river pre-processing)
 MOD_MESHMASK="/work/oda/ag15419/PHYSW24_DATA/TIDES/DATA0/mesh_mask.nc"
 
-# -----PO River---------
+# -----PO River inputs---------
 
 # Flag to sobstitute observed values to the climatological ones for the Po river (to activate set PORIVER_OBS_FLAG=1)
 PORIVER_OBS_FLAG=0
@@ -50,10 +52,10 @@ PO_INPUT_VARCODE='512'
 # Path of 1 day arpae obs
 PO_INPUT_DAILY='/data/oda/ag15419/RIVERS_DATA/PO/daily/Pontelagoscuro_daily_2015_2021.csv'
 
-# -----EFAS Dataset---------
+# -----EFAS Dataset input---------
 
 # Flag to use EFAS Dataset where available instead of climatology (to activate set EFAS_FLAG=1)
-EFAS_FLAG=1
+EFAS_FLAG=0
 # Path to time-series
 EFAS_INPUT_PATH='/users_home/oda/ag15419/river_inputs/Killworth/'
 # Pre and post name of the file storing the EFAS time series
@@ -79,7 +81,7 @@ RUNOFF_VAR='sorunoff'
 SALINITY_VAR='s_river'
 CLIM_1M_RUNOFF_VAR='clim_monthly_runoff'
 CLIM_1D_RUNOFF_VAR='clim_daily_runoff'
-NAME_VAR='river_name'
+NAME_VAR='river_id' #river_name
 
 # Executables:
 # 1) Py script to extract climatological values from Input file
@@ -219,7 +221,8 @@ for CLIM_FILE in $(ls clim_*.txt); do
     INDEXES_OR=$(echo ${CLIM_FILE} | cut -f 2,3 -d"_" | cut -f 1 -d".")
     INDEXES=$(echo ${CLIM_FILE} | cut -f 2,3 -d"_" | cut -f 1 -d"."| sed -e "s/_/;/g" )
     RIVER_NAME="$( grep "^${INDEXES}" ${RIVER_INFO} | cut -f 6 -d";" )" || RIVER_NAME="Unknown_River"
-    echo "INDEXES=$INDEXES RIVER_NAME: $RIVER_NAME"
+    RIVER_NUM="$( grep "^${INDEXES}" ${RIVER_INFO} | cut -f 3 -d";" )" || RIVER_NAME=0
+    echo "RIVER_ID=$RIVER_NUM INDEXES=$INDEXES RIVER_NAME: $RIVER_NAME"
     # Read climatologica values and built climatological intervals
     VAL=$( cat $CLIM_FILE )
     IDX_VAL=1
@@ -258,9 +261,9 @@ EOF
     rm ${SED_FILE}
     echo ".. Done"
   
-    echo "I am doing the Interpolation and the plot..${RIVER_LAT} ${RIVER_LON} ${RIVER_NAME} ${DAILY_RIVERS} ${YEAR2COMPUTE} ${RUNOFF_VAR}"
+    echo "I am doing the Interpolation and the plot.."
     cp ${DAILY_RIVERS}_temp.nc ${DAILY_RIVERS}_tmp.nc
-    python ${PY_INTERP2DAILY} ${RIVER_LAT} ${RIVER_LON} ${RIVER_NAME} ${DAILY_RIVERS} ${YEAR2COMPUTE} ${CLIM_1D_RUNOFF_VAR} ${CLIM_1M_RUNOFF_VAR} ${LAT_IDX} ${LON_IDX} ${TIME_IDX}
+    python ${PY_INTERP2DAILY} ${RIVER_LAT} ${RIVER_LON} ${RIVER_NAME} ${RIVER_NUM} ${DAILY_RIVERS} ${YEAR2COMPUTE} ${CLIM_1D_RUNOFF_VAR} ${CLIM_1M_RUNOFF_VAR} ${MASK_VAR} ${NAME_VAR} ${LAT_IDX} ${LON_IDX} ${TIME_IDX}
     mv ${DAILY_RIVERS}_tmp.nc ${DAILY_RIVERS}_upd.nc
     echo ".. Done"
 done

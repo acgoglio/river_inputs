@@ -16,12 +16,11 @@ echo "*********** Daily river input 4 EAS System ***********"
 
 # -----Input infos---------
 # Year
-YEAR2COMPUTE=2015
+YEAR2COMPUTE=2020
 
-# src directory (path of this script!)  workdir and your virtual environment
+# src directory (path of this script!), workdir and your py virtual environment name
 SRCDIR="/users_home/oda/ag15419/river_inputs/Killworth/"
-WORKDIR="/work/oda/ag15419/tmp/river_inputs/kill_obs/"
-
+WORKDIR="/work/oda/ag15419/tmp/river_inputs/kill_efas/"
 # your virtual env
 YOUR_PY_ENV="mappyenv"
 
@@ -38,6 +37,7 @@ MOD_MESHMASK="/work/oda/ag15419/PHYSW24_DATA/TIDES/DATA0/mesh_mask.nc"
 PORIVER_OBS_FLAG=0
 # Prename of the Po river in the csv file
 PO_RIVER_PRENAME='Po_' 
+PO_LEVANTE_NAME='Po_di_Levante'
 # Path of 30m arpae obs and code of runoff field in the database
 # WARNING: if pre-name of the file is empty you should put 'NAN' 
 PO_INPUT_PATH='/data/oda/ag15419/RIVERS_DATA/PO/30m/'
@@ -55,7 +55,7 @@ PO_INPUT_DAILY='/data/oda/ag15419/RIVERS_DATA/PO/daily/Pontelagoscuro_daily_2015
 # -----EFAS Dataset input---------
 
 # Flag to use EFAS Dataset where available instead of climatology (to activate set EFAS_FLAG=1)
-EFAS_FLAG=0
+EFAS_FLAG=1
 # Path to time-series
 EFAS_INPUT_PATH='/users_home/oda/ag15419/river_inputs/Killworth/'
 # Pre and post name of the file storing the EFAS time series
@@ -66,7 +66,7 @@ EFAS_INPUT_FILE_POST='.txt'
 ###########################################################################################
 
 # Csv file with rivers info
-RIVER_INFO="rivers_info_prova.csv"
+RIVER_INFO="rivers_info_v2.csv"
 
 # I/O nc dimensions and variables names
 # Dimensions names 
@@ -282,8 +282,16 @@ if [[ $PORIVER_OBS_FLAG == 1 ]]; then
       NEXT_RUNOFF_VAR=${RUNOFF_VAR}
    fi
 
+   # Build the EFAS Po file to be used where ARPAE obs are missing..
+   if [[ ${EFAS_INPUT_FILE_PRE} != 'NAN'  ]]; then
+      EFAS_INPUT_POFILE_TEMP="${EFAS_INPUT_PATH}/${EFAS_INPUT_FILE_PRE}_${PO_RIVER_PRENAME}*_*${EFAS_INPUT_FILE_POST}"
+   else
+      EFAS_INPUT_POFILE_TEMP="${EFAS_INPUT_PATH}/${PO_RIVER_PRENAME}*_*${EFAS_INPUT_FILE_POST}"
+   fi
+   EFAS_INPUT_POFILE=$( ls ${EFAS_INPUT_POFILE_TEMP} )
+
    mv ${DAILY_RIVERS} ${DAILY_RIVERS}_POtmp.nc
-   python ${PY_PORIVER_OBS} ${WORKDIR} ${YEAR2COMPUTE} ${TOT_DOY} ${PO_INPUT_PATH} ${PO_INPUT_FILE_PRE} ${PO_INPUT_FILE_POST} ${PO_INPUT_VARCODE} ${PO_INPUT_DAILY} ${MOD_MESHMASK} ${RIVER_INFO} ${PO_RIVER_PRENAME} ${DAILY_RIVERS}_POtmp.nc ${NEXT_RUNOFF_VAR} ${CLIM_1M_RUNOFF_VAR} ${CLIM_1D_RUNOFF_VAR} ${LAT_IDX} ${LON_IDX} ${TIME_IDX}
+   python ${PY_PORIVER_OBS} ${WORKDIR} ${YEAR2COMPUTE} ${TOT_DOY} ${PO_INPUT_PATH} ${PO_INPUT_FILE_PRE} ${PO_INPUT_FILE_POST} ${PO_INPUT_VARCODE} ${PO_INPUT_DAILY} ${EFAS_INPUT_POFILE} ${MOD_MESHMASK} ${RIVER_INFO} ${PO_RIVER_PRENAME} ${PO_LEVANTE_NAME} ${DAILY_RIVERS}_POtmp.nc ${NEXT_RUNOFF_VAR} ${CLIM_1M_RUNOFF_VAR} ${CLIM_1D_RUNOFF_VAR} ${LAT_IDX} ${LON_IDX} ${TIME_IDX}
    echo ".. Done"
    # Move the ultimate output to the final output file
    mv ${DAILY_RIVERS}_POtmp.nc ${DAILY_RIVERS}

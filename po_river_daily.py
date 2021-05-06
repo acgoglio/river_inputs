@@ -32,7 +32,7 @@ import re # grep in python
 # annachiara.goglio@cmcc.it
 #
 # Written: 04/2021
-# Modified: 26/04/2021
+# Modified: 05/05/2021
 #
 # Script to fit and pre-process Po river data from ARPAE 30 min data
 #
@@ -60,26 +60,29 @@ arpae_input_filepost=sys.argv[6]
 
 arpae_input_varcode=int(sys.argv[7])
 arpae_input_daily=sys.argv[8]
+efas_input_pofile=sys.argv[9]
 
 # NEMO mesh mask
-mod_meshmask=sys.argv[9]
+mod_meshmask=sys.argv[10]
 
 # Csv path/file
-csv_infofile=sys.argv[10]
+csv_infofile=sys.argv[11]
 csv_infofile=workdir+'/'+csv_infofile
 # River prename (in csv file)
-river_prename=sys.argv[11]
+river_prename=sys.argv[12]
+# Po di Levante name
+levante_name=sys.argv[13]
 
 # Outfile infos 
-daily_rivers=sys.argv[12]
-runoff_var=sys.argv[13]
-clim_1m_runoff_var=sys.argv[14]
-clim_1d_runoff_var=sys.argv[15]
+daily_rivers=sys.argv[14]
+runoff_var=sys.argv[15]
+clim_1m_runoff_var=sys.argv[16]
+clim_1d_runoff_var=sys.argv[17]
 
 # Outfile Dimensions names 
-lat_idx=sys.argv[16]
-lon_idx=sys.argv[17]
-time_idx=sys.argv[18]
+lat_idx=sys.argv[18]
+lon_idx=sys.argv[19]
+time_idx=sys.argv[20]
 
 ########################################################
 # DO NOT CHANGE THE CODE BELOW THIS LINE!!!
@@ -171,6 +174,7 @@ for idx_outarr,idx_date in enumerate(daterange):
        dailyvals_fromobs[idx_outarr]=daily_mean
 
     # If there are no 30 min obs look for values in the daily dataset downloaded from https://simc.arpae.it/dext3r/ (Pontelagoscuro)
+    # Otherwise read the value from EFAS Model (if missing leave the daily climatological one!)
     else:
        print('Value from daily dataset')
        if os.path.exists(arpae_input_daily):       
@@ -190,8 +194,17 @@ for idx_outarr,idx_date in enumerate(daterange):
                        try:
                          dailyvals_fromobs[idx_outarr]=round(float(valtowrite),2)
                        except:
+                         print ('OBS not found in daily dataset: value from EFAS model dataset!')
+                         if os.path.exists(efas_input_pofile):
+                            with open(efas_input_pofile) as origin_pofile:
+                              for efas_line in origin_pofile:
+                                line_flag = re.findall(r"{}".format(date_string1),efas_line) 
+                                if line_flag:
+                                   valtowrite=efas_line.split(' ')[1]
+                                   dailyvals_fromobs[idx_outarr]=round(float(valtowrite),2)
+                       else:
                          print ('OBS not found: value from climatology!')
-                          
+    
 
 ######################################
 # ------------------------------------
@@ -226,8 +239,26 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
       model = NC.Dataset(mod_meshmask,'r')
       mod_e1t = model.variables['e1t'][:]
       mod_e2t = model.variables['e2t'][:]
+
       # Open the csv file
       with open(csv_infofile) as infile:
+
+        # Read the discharge of Po di Levante [kg/m**2/s]
+        # to be subtracted to the Pontelagoscuro one
+        levante_runoff=[0 for idx in range(0,days_of_year)]
+        for line in infile:
+            line_flag = re.findall(r"{}".format(levante_name),line)
+            if line_flag:
+               levante_lat_idx=line.split(';')[0]
+               levante_lon_idx=line.split(';')[1]
+               levante_perc=line.split(';')[9]
+               if float(levante_perc) == 0:
+                  levante_runoff=clim_1d_runoff[:,int(levante_lat_idx),int(levante_lon_idx)]
+                  print ('I am going to subtract Po di levante runoff form Pontelagoscuro discharge..')
+                  
+      # Re-open the csv file
+      with open(csv_infofile) as infile:
+        # Loop on the whole Po_* set of branches 
         for line in infile:
             line_flag = re.findall(r"{}".format(river_prename),line)
             if line_flag:
@@ -237,18 +268,32 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
                branch_perc=line.split(';')[9]
 
                # If branch_perc is != 0 do the substitution 
-               # Otherwise it means that the branch values comes form different sources
+               # Otherwise it means that the branch values comes form different sources, 
+               # namely Po di Levante and Po di Volano are from Simoncelli climatology
                if float(branch_perc) != 0:
                   print (branch_name,branch_lat_idx,branch_lon_idx,branch_perc)
    
-                  # split the discharge 
-                  branch_fromobs=np.array(dailyvals_fromobs)*(float(branch_perc)/100.0)
-   
-                  # From m**3/s to kg/m**2/s 
+                  # From m**3/s to kg/m**2/s where there is a non 0 discharge, 
+                  # otherwise set nan value
                   branch_e1t=mod_e1t[0,int(branch_lat_idx),int(branch_lon_idx)]
                   branch_e2t=mod_e2t[0,int(branch_lat_idx),int(branch_lon_idx)]
-                  branch_runoff=np.where(branch_fromobs!=0.000000000,1000.0*branch_fromobs/(branch_e1t*branch_e2t),'nan')
-   
+                  dailyvals_fromobs=np.array(dailyvals_fromobs)
+                  dailyvals_obsrunoff=np.where(dailyvals_fromobs!=0.000000000,1000.0*dailyvals_fromobs/(branch_e1t*branch_e2t),'nan')
+                  # Subtract the discharge of Po di Levante
+                  dailyvals_obssub=[0 for idx in range(0,days_of_year)]
+                  for idx_out in range (0,len(dailyvals_obsrunoff)):
+                      if dailyvals_obsrunoff[idx_out] != 'nan':
+                         dailyvals_obssub[idx_out]=float(dailyvals_obsrunoff[idx_out])-float(levante_runoff[idx_out])
+                      else:
+                         dailyvals_obssub[idx_out]='nan'
+                  # Split the discharge 
+                  branch_runoff=[0 for idx in range(0,days_of_year)]
+                  for idx_out in range (0,len(dailyvals_obssub)):
+                      if dailyvals_obssub[idx_out] != 'nan':
+                         branch_runoff[idx_out]=dailyvals_obssub[idx_out]*(float(branch_perc)/100.0)
+                      else:
+                         branch_runoff[idx_out]='nan'
+
                   # TMP: and store the daily and monthly clim values for the plot!
                   clim_1d_runoff_branch=clim_1d_runoff[:,int(branch_lat_idx),int(branch_lon_idx)]
                   clim_1m_runoff_branch=clim_1m_runoff[:,int(branch_lat_idx),int(branch_lon_idx)] 
@@ -269,7 +314,7 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
                         new_field[idx_out,int(branch_lat_idx),int(branch_lon_idx)]=branch_runoff[idx_out]
    
                   # Add the new field to the plot
-                  plt.plot(daterange,new_field[:,int(branch_lat_idx),int(branch_lon_idx)],label = 'OBS/Daily clim values')
+                  plt.plot(daterange,new_field[:,int(branch_lat_idx),int(branch_lon_idx)],label = 'OBS or EFAS values')
                   plt.grid ()
                   plt.ylabel ('River runoff [kg/m2/s]')
                   plt.xlabel ('Date')

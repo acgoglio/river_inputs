@@ -114,8 +114,8 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
             if line[0] != '#':
                # If EFAS data are available
                efas_flag=line.split(';')[10]
-               # For discharges on single grid point 
-               if int(efas_flag) == 1:
+               # For discharges on single grid point and on multiple grd points 
+               if int(efas_flag) != 0:
                   efas_name=line.split(';')[5]
                   # Idx in MED grid
                   efas_lat_idx=line.split(';')[0]
@@ -150,17 +150,26 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
                      efas_runoff=1000.0*np.array(dailyvals_fromefas)/(float(efas_e1t)*float(efas_e2t))
                      efas_runoff=np.array(efas_runoff)
 
-                     # Build the new field
-                     for idx_out in range (0,len(efas_runoff)):
-                         new_field[int(idx_out),int(efas_lat_idx),int(efas_lon_idx)]=efas_runoff[int(idx_out)]
-
-
+                     # For discharges on single grid points 
+                     if int(efas_flag) == 1:
+                        # Build the new field
+                        for idx_out in range (0,len(efas_runoff)):
+                            new_field[int(idx_out),int(efas_lat_idx),int(efas_lon_idx)]=efas_runoff[int(idx_out)]
+                
+                     # For discharges on multiple grd points 
+                     elif efas_flag > 1:
+                          print ('Discharge on multiple grid points..#: ',efas_flag)
+                          # Read the percentages and split the discharge
+                          efas_perc=line.split(';')[9]
+                          print ('Branch perc: ',efas_perc)
+                          # Build the new field
+                          efas_runoff=(efas_runoff*efas_perc)/100.0
+                          for idx_out in range (0,len(efas_runoff)):
+                            new_field[int(idx_out),int(efas_lat_idx),int(efas_lon_idx)]=efas_runoff[int(idx_out)]
+         
                   else:
                      print ('ERROR: efas input file NOT FOUND!!')
 
-               # For discharges on multiple grid points 
-               if efas_flag == 2:
-                  print ('Discharge on multiple grid points..')
 else:
    print ('ERROR: Check mesh_mask and info csv files! ')
 
@@ -169,8 +178,8 @@ runoff[:]=new_field[:]
 # Close the mod outfile
 output_daily.close()
 
-#
-# Validation check of the outfile
+######################################
+# Validation: check of the outfile
 print ('I am going to plot the diagnostic plots to validate the outfile: ',daily_rivers)
 # Open the outfile 
 output_daily = NC.Dataset(daily_rivers,'r')

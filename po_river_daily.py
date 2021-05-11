@@ -32,10 +32,15 @@ import re # grep in python
 # annachiara.goglio@cmcc.it
 #
 # Written: 04/2021
-# Modified: 05/05/2021
+# Modified: 11/05/2021
 #
 # Script to fit and pre-process Po river data from ARPAE 30 min data
-#
+# # The script is based on the rivers_input_v2.csv file
+# Po di Levante and Po di Volano branches of Po river are treated as independent from Po river 
+# but there is also the possibility of subtracting the Po di Levante discharge (optained from clim) 
+# from the Pontelagoscuro tot value. In order to activate this option modify the levante_flag in the 
+# following section 
+
 #################################################################
 # The user should modify the following lines to set his run
 #################################################################
@@ -84,15 +89,19 @@ lat_idx=sys.argv[18]
 lon_idx=sys.argv[19]
 time_idx=sys.argv[20]
 
+# Flag to subtract the Po di Levante climatological value from the Pontelagoscuro discharge [D.Delrosso solution]
+# if = 0 the [F. Maicu ] solution is adopted: Levante and Volano are considered independent from Pontelagoscuro
+levante_flag=0
+
 ########################################################
 # DO NOT CHANGE THE CODE BELOW THIS LINE!!!
 ########################################################
 # --------------------------
 # Build the daily mean array
 # -------------------------
-# Inizialize the output array
+# Inizialize the output array and the counter for missing values
 dailyvals_fromobs=[0 for idx in range(0,days_of_year)]
-
+efasmod_num=0
 # Loop on days of the year (to be searched and read from obs)
 start_date = date(yeartocompute, 1, 1)
 end_date = date(yeartocompute+1, 1, 1)-timedelta(days=1)
@@ -202,10 +211,11 @@ for idx_outarr,idx_date in enumerate(daterange):
                                 if line_flag:
                                    valtowrite=efas_line.split(' ')[1]
                                    dailyvals_fromobs[idx_outarr]=round(float(valtowrite),2)
+                                   efasmod_num=efasmod_num+1
                        else:
                          print ('OBS not found: value from climatology!')
     
-
+print ('Daily values form EFAS Model: ', efasmod_num)
 ######################################
 # ------------------------------------
 # Write the Po obs to the netcdf file
@@ -245,16 +255,18 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
 
         # Read the discharge of Po di Levante [kg/m**2/s]
         # to be subtracted to the Pontelagoscuro one
-        levante_runoff=[0 for idx in range(0,days_of_year)]
-        for line in infile:
-            line_flag = re.findall(r"{}".format(levante_name),line)
-            if line_flag:
-               levante_lat_idx=line.split(';')[0]
-               levante_lon_idx=line.split(';')[1]
-               levante_perc=line.split(';')[9]
-               if float(levante_perc) == 0:
-                  levante_runoff=clim_1d_runoff[:,int(levante_lat_idx),int(levante_lon_idx)]
-                  print ('I am going to subtract Po di levante runoff form Pontelagoscuro discharge..')
+        # if required (e.g. if levante_flag != 0 )
+        if levante_flag != 0:
+           levante_runoff=[0 for idx in range(0,days_of_year)]
+           for line in infile:
+               line_flag = re.findall(r"{}".format(levante_name),line)
+               if line_flag:
+                  levante_lat_idx=line.split(';')[0]
+                  levante_lon_idx=line.split(';')[1]
+                  levante_perc=line.split(';')[9]
+                  if float(levante_perc) == 0:
+                     levante_runoff=clim_1d_runoff[:,int(levante_lat_idx),int(levante_lon_idx)]
+                     print ('I am going to subtract Po di levante runoff form Pontelagoscuro discharge..')
                   
       # Re-open the csv file
       with open(csv_infofile) as infile:
@@ -279,13 +291,23 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
                   branch_e2t=mod_e2t[0,int(branch_lat_idx),int(branch_lon_idx)]
                   dailyvals_fromobs=np.array(dailyvals_fromobs)
                   dailyvals_obsrunoff=np.where(dailyvals_fromobs!=0.000000000,1000.0*dailyvals_fromobs/(branch_e1t*branch_e2t),'nan')
+
                   # Subtract the discharge of Po di Levante
+                  # if required (e.g. if levante_flag != 0 )
                   dailyvals_obssub=[0 for idx in range(0,days_of_year)]
-                  for idx_out in range (0,len(dailyvals_obsrunoff)):
-                      if dailyvals_obsrunoff[idx_out] != 'nan':
-                         dailyvals_obssub[idx_out]=float(dailyvals_obsrunoff[idx_out])-float(levante_runoff[idx_out])
-                      else:
-                         dailyvals_obssub[idx_out]='nan'
+                  if levante_flag != 0:
+                     for idx_out in range (0,len(dailyvals_obsrunoff)):
+                         if dailyvals_obsrunoff[idx_out] != 'nan':
+                            dailyvals_obssub[idx_out]=float(dailyvals_obsrunoff[idx_out])-float(levante_runoff[idx_out])
+                         else:
+                            dailyvals_obssub[idx_out]='nan'
+                  else:
+                     for idx_out in range (0,len(dailyvals_obsrunoff)):
+                         if dailyvals_obsrunoff[idx_out] != 'nan':
+                            dailyvals_obssub[idx_out]=float(dailyvals_obsrunoff[idx_out])
+                         else:
+                            dailyvals_obssub[idx_out]='nan'
+ 
                   # Split the discharge 
                   branch_runoff=[0 for idx in range(0,days_of_year)]
                   for idx_out in range (0,len(dailyvals_obssub)):
@@ -294,7 +316,7 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
                       else:
                          branch_runoff[idx_out]='nan'
 
-                  # TMP: and store the daily and monthly clim values for the plot!
+                  # Store the daily and monthly clim values for the plot!
                   clim_1d_runoff_branch=clim_1d_runoff[:,int(branch_lat_idx),int(branch_lon_idx)]
                   clim_1m_runoff_branch=clim_1m_runoff[:,int(branch_lat_idx),int(branch_lon_idx)] 
    

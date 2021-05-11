@@ -4,6 +4,7 @@
 # annachiara.goglio@cmcc.it
 #
 # Written: 13/04/2021
+# Last Mod: 11/05/2021
 #
 #set -u
 set -e
@@ -20,13 +21,13 @@ YEAR2COMPUTE=2020
 
 # src directory (path of this script!), workdir and your py virtual environment name
 SRCDIR="/users_home/oda/ag15419/river_inputs/Killworth/"
-WORKDIR="/work/oda/ag15419/tmp/river_inputs/kill_efas/"
+WORKDIR="/work/oda/ag15419/tmp/river_inputs/Po_exp_inputs/"
 # your virtual env
 YOUR_PY_ENV="mappyenv"
 
 # Input path/name (EAS system monthly river input file) and output name (EAS system daily river input file)
 MONTHLY_RIVERS="/data/opa/mfs-dev/Med_static/MFS_EAS6_STATIC_V2/NEMO_DATA0/runoff_1m_nomask.nc"
-DAILY_RIVERS="runoff_1d_nomask_${YEAR2COMPUTE}.nc"
+DAILY_RIVERS="runoff_1d_nomask_y${YEAR2COMPUTE}.nc"
 
 # NEMO mesh mask file (needed for Po river pre-processing)
 MOD_MESHMASK="/work/oda/ag15419/PHYSW24_DATA/TIDES/DATA0/mesh_mask.nc"
@@ -34,7 +35,7 @@ MOD_MESHMASK="/work/oda/ag15419/PHYSW24_DATA/TIDES/DATA0/mesh_mask.nc"
 # -----PO River inputs---------
 
 # Flag to sobstitute observed values to the climatological ones for the Po river (to activate set PORIVER_OBS_FLAG=1)
-PORIVER_OBS_FLAG=0
+PORIVER_OBS_FLAG=1
 # Prename of the Po river in the csv file
 PO_RIVER_PRENAME='Po_' 
 PO_LEVANTE_NAME='Po_di_Levante'
@@ -55,9 +56,9 @@ PO_INPUT_DAILY='/data/oda/ag15419/RIVERS_DATA/PO/daily/Pontelagoscuro_daily_2015
 # -----EFAS Dataset input---------
 
 # Flag to use EFAS Dataset where available instead of climatology (to activate set EFAS_FLAG=1)
-EFAS_FLAG=1
+EFAS_FLAG=0
 # Path to time-series
-EFAS_INPUT_PATH='/users_home/oda/ag15419/river_inputs/Killworth/'
+EFAS_INPUT_PATH='/data/oda/ag15419/RIVERS_DATA/EFAS/'
 # Pre and post name of the file storing the EFAS time series
 # WARNING: if pre-name of the file is empty you should put 'NAN'
 EFAS_INPUT_FILE_PRE='NAN'
@@ -316,4 +317,5 @@ if [[ $EFAS_FLAG == 1 ]]; then
    mv ${DAILY_RIVERS}_EFAStmp.nc ${DAILY_RIVERS}
 fi
 ######################
-
+echo "Output dir: $WORKDIR.."
+######################

@@ -26,15 +26,18 @@ from matplotlib.colors import LogNorm
 from operator import itemgetter # to order lists
 from statsmodels.distributions.empirical_distribution import ECDF # empirical distribution functions
 import re # grep in python
+from glob import glob # * and ? in strings in py
 #
 #
 # by AC Goglio (CMCC)
 # annachiara.goglio@cmcc.it
 #
 # Written: 05/2021
-# Modified: 04/05/2021
+# Modified: 11/05/2021
 #
 # Script to substitute EFAS time-series into the river input file 
+# The script is based on the rivers_input_v2.csv file
+# Po di Levante and Po di Volano branches of Po river are treated as independent from Po river
 #
 #################################################################
 # The user should modify the following lines to set his run
@@ -120,12 +123,21 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
                   # Idx in MED grid
                   efas_lat_idx=line.split(';')[0]
                   efas_lon_idx=line.split(';')[1]
-                  # Idx in EFAS grid
-                  efas_lat_efasidx=line.split(';')[11]
-                  efas_lon_efasidx=line.split(';')[12]
-                  # Build the path/name of the input efas file
-                  efas_filetoread=efas_input_path+'/'+efas_input_filepre+efas_name+'_'+efas_lat_efasidx+'_'+efas_lon_efasidx+efas_input_filepost
                   print (efas_name,efas_lat_idx,efas_lon_idx)
+                  #
+                  # If in the future the efas idx are needed use the following lines and remove the following lines (with *):
+                  # Idx in EFAS grid
+                  #efas_lat_efasidx=line.split(';')[11]
+                  #efas_lon_efasidx=line.split(';')[12]
+                  # Build the path/name of the input efas file
+                  if efas_name[0:3] != 'Po_':
+                     #efas_filetoread=efas_input_path+'/'+efas_input_filepre+efas_name+'_'+efas_lat_efasidx+'_'+efas_lon_efasidx+efas_input_filepost
+                     efas_filetoread=glob(efas_input_path+'/'+efas_input_filepre+efas_name+'*_*'+efas_input_filepost)
+                  else:
+                     #efas_filetoread=efas_input_path+'/'+efas_input_filepre+efas_name+'_'+efas_lat_efasidx+'_'+efas_lon_efasidx+efas_input_filepost
+                     efas_filetoread=glob(efas_input_path+'/'+efas_input_filepre+efas_name[0:3]+'*_*'+efas_input_filepost)
+                  efas_filetoread=str(efas_filetoread[0])
+                  #
                   print (efas_filetoread)
                   if os.path.exists(efas_filetoread):
                      # Inizialize the output arrays
@@ -157,13 +169,13 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
                             new_field[int(idx_out),int(efas_lat_idx),int(efas_lon_idx)]=efas_runoff[int(idx_out)]
                 
                      # For discharges on multiple grd points 
-                     elif efas_flag > 1:
+                     elif int(efas_flag) > 1:
                           print ('Discharge on multiple grid points..#: ',efas_flag)
                           # Read the percentages and split the discharge
                           efas_perc=line.split(';')[9]
                           print ('Branch perc: ',efas_perc)
                           # Build the new field
-                          efas_runoff=(efas_runoff*efas_perc)/100.0
+                          efas_runoff=(efas_runoff*float(efas_perc))/100.0
                           for idx_out in range (0,len(efas_runoff)):
                             new_field[int(idx_out),int(efas_lat_idx),int(efas_lon_idx)]=efas_runoff[int(idx_out)]
          
@@ -215,7 +227,7 @@ with open(csv_infofile) as infile:
          plt.legend()
          #
          plt.subplot(2,1,2)
-         plt.plot(daterange,diff[:,int(river_lat_idx),int(river_lon_idx)],label = 'EFAS-Clim STD DEV: '+str(std_diff))
+         plt.plot(daterange,diff[:,int(river_lat_idx),int(river_lon_idx)],label = 'EFAS-Clim (STD DEV: '+str(std_diff)+')')
          plt.grid ()
          plt.ylabel ('River runoff difference [kg/m2/s]')
          plt.xlabel ('Date')

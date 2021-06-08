@@ -36,31 +36,51 @@ import matplotlib.dates as mdates # To plot dates
 # Modified: 20/05/2021
 #
 ##################################################################
-yeartocompute=int(sys.argv[1])
+start_year=int(sys.argv[1])
+end_year=int(sys.argv[2])
+
+# Static vars
 workdir='/work/oda/ag15419/tmp/river_inputs/plots4slides_efas/'
 daily_rivers_path='/work/oda/ag15419/PHYSW24_DATA/RIVERS/NEMO_DATA0_EAS6_PO/'
-daily_rivers='runoff_1d_nomask_y'+str(yeartocompute)+'.nc' 
 daily_rivers_path2='/work/oda/ag15419/PHYSW24_DATA/RIVERS/NEMO_DATA0_EAS6_EFAS/'
-daily_rivers2='runoff_1d_nomask_y'+str(yeartocompute)+'.nc'
 clim_1m_runoff_var='clim_monthly_runoff'
 runoff_var='sorunoff'
 csv_infofile='rivers_info_v2.csv'
-# ------------------------------------
-# Check the whole outfile
-# ------------------------------------
-print ('I am going to plot the diagnostic plots to validate the outfile: ',daily_rivers)
-# Open the outfile 
-output_daily = NC.Dataset(daily_rivers_path+daily_rivers,'r')
-oldout=output_daily.variables[clim_1m_runoff_var][:]
-newout=output_daily.variables[runoff_var][:]
 
-output_daily2 = NC.Dataset(daily_rivers_path2+daily_rivers2,'r')
-newout2=output_daily2.variables[runoff_var][:]
+# Loop on yearly files:
+for yeartocompute in range(start_year,end_year+1):
+   daily_rivers='runoff_1d_nomask_y'+str(yeartocompute)+'.nc' 
+   daily_rivers2='runoff_1d_nomask_y'+str(yeartocompute)+'.nc'
+   # ------------------------------------
+   # Check the whole outfile
+   # ------------------------------------
+   print ('I am going to plot the diagnostic plots to validate the outfile: ',daily_rivers)
+   # Open the outfile 
+   output_daily = NC.Dataset(daily_rivers_path+daily_rivers,'r')
+   output_daily2 = NC.Dataset(daily_rivers_path2+daily_rivers2,'r')
+
+   if yeartocompute == start_year:
+      oldout=output_daily.variables[clim_1m_runoff_var][:,:,:]
+      newout=output_daily.variables[runoff_var][:,:,:]
+      newout2=output_daily2.variables[runoff_var][:,:,:]
+   else:
+      oldout=np.append(oldout,output_daily.variables[clim_1m_runoff_var][:,:,:], axis=0)
+      newout=np.append(newout,output_daily.variables[runoff_var][:,:,:], axis=0)
+      newout2=np.append(newout2,output_daily2.variables[runoff_var][:,:,:], axis=0)
+
+   # Close the outfile
+   output_daily.close()
+   output_daily2.close()
+
+print ('Prova post 1',oldout.shape)
+oldout=np.array(oldout)
+newout=np.array(newout)
+newout2=np.array(newout2)
+print ('Prova post 2',oldout.shape)
 
 # choose the dates
-plotstart_date = date(yeartocompute, 1, 1)
-#plotend_date = date(yeartocompute+1, 1, 1)-timedelta(days=1)
-plotend_date = date(yeartocompute, 12, 31)
+plotstart_date = date(int(start_year), 1, 1)
+plotend_date = date(int(end_year), 12, 31)
 plotdaterange = pd.date_range(plotstart_date, plotend_date)
 
 
@@ -70,7 +90,7 @@ mod1_path='/work/oda/ag15419/arc_link/eas6_drpo/output/'
 mod2_path=' /work/oda/ag15419/arc_link/eas6_drpo_ctrl/output/'
 mod3_path='/work/oda/ag15419/arc_link/eas6_efas/output/'
 #
-mod1_prename1='assw_drpo_1d_'
+mod1_prename1='assw_drpo2_1d_'
 mod1_prename2='assw_drpo2_1d_'
 mod1_prename3='assw_drpo3_1d_'
 mod1_prename4='assw_drpo4_1d_'
@@ -101,7 +121,7 @@ for numofdays,date_idx in enumerate(daterange):
 
    # Set the file prename
    if year+month == '201701':
-      mod1_prename=mod1_prename2
+      mod1_prename=mod1_prename1
    elif year == '2017':
       mod1_prename=mod1_prename2
    elif year+month == '202001' or year == '2018' or year == '2019':
@@ -114,6 +134,7 @@ for numofdays,date_idx in enumerate(daterange):
      mod2_prename=mod2_prename2
    else:
      mod2_prename=mod2_prename1
+
 
    mod1_file=mod1_path+'/'+year+month+'/'+mod1_prename+year+month+day+'_grid_'+grid+'.nc'
    mod2_file=mod2_path+'/'+year+month+'/'+mod2_prename+year+month+day+'_grid_'+grid+'.nc'
@@ -142,19 +163,19 @@ with open(csv_infofile) as infile:
          print ('I am working on ', river_name,river_lat_idx,river_lon_idx)
          
          # Plot 
-         plotname=workdir+'inout_'+river_name+'_'+str(yeartocompute)+'.png'
+         plotname=workdir+'inout_'+river_name+'_'+str(start_year)+'-'+str(end_year)+'.png'
          plt.figure(figsize=(18,12))
          plt.rc('font', size=14)
-         plt.title ('Old river forcing Vs New river forcing --- River: '+river_name+'--- Year: '+str(yeartocompute))
+         plt.title ('Old river forcing Vs New river forcing --- River: '+river_name+'--- Period: '+str(start_year)+'-'+str(end_year))
          # 
          plt.xticks(rotation=45)
          #
          plt.plot(plotdaterange,oldout[0:numofdays+1,int(river_lat_idx),int(river_lon_idx)],label = 'Climatology')
-         plt.plot(plotdaterange,newout[0:numofdays+1,int(river_lat_idx),int(river_lon_idx)],'-o',label = 'Obs')
-         plt.plot(plotdaterange,newout2[0:numofdays+1,int(river_lat_idx),int(river_lon_idx)],'-o',label = 'EFAS Model')
-         plt.plot(plotdaterange,np.squeeze(field1[:,0,int(river_lat_idx),int(river_lon_idx)]),'-o',label = 'sorunoff assw_drpo')
-         plt.plot(plotdaterange,np.squeeze(field2[:,0,int(river_lat_idx),int(river_lon_idx)]),'-o',label = 'sorunoff assw_ctrl')
-         plt.plot(plotdaterange,np.squeeze(field3[:,0,int(river_lat_idx),int(river_lon_idx)]),'-o',label = 'sorunoff assw_efas')
+         plt.plot(plotdaterange,newout[0:numofdays+1,int(river_lat_idx),int(river_lon_idx)],label = 'Obs')
+         plt.plot(plotdaterange,newout2[0:numofdays+1,int(river_lat_idx),int(river_lon_idx)],label = 'EFAS Model')
+         plt.plot(plotdaterange,np.squeeze(field1[:,0,int(river_lat_idx),int(river_lon_idx)]),label = 'sorunoff assw_drpo')
+         plt.plot(plotdaterange,np.squeeze(field2[:,0,int(river_lat_idx),int(river_lon_idx)]),label = 'sorunoff assw_ctrl')
+         plt.plot(plotdaterange,np.squeeze(field3[:,0,int(river_lat_idx),int(river_lon_idx)]),label = 'sorunoff assw_efas')
          plt.grid ()
          plt.ylabel ('River runoff [kg/m2/s]')
          plt.xlabel ('Date')
@@ -163,6 +184,4 @@ with open(csv_infofile) as infile:
          plt.savefig(plotname)
          plt.clf()
 
-# Close the outfile
-output_daily.close()
 

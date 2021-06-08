@@ -30,7 +30,7 @@ YOUR_PY_ENV="mappyenv"
 # ------ Input and output files info---------
 # Input path/name (EAS system monthly river input file) and output name (EAS system daily river input file)
 MONTHLY_RIVERS="/data/opa/mfs-dev/Med_static/MFS_EAS6_STATIC_V2/NEMO_DATA0/runoff_1m_nomask.nc"
-DAILY_RIVERS="runoff_1d_nomask_y${YEAR2COMPUTE}.nc"
+DAILY_RIVERS="runoff_1d_nomask_y${YEAR2COMPUTE}.nc" # WARNING: do not change this name or change the NEMO namelist according to it!
 
 # NEMO mesh mask file (needed for Po river and EFAS pre-processing)
 MOD_MESHMASK="/work/oda/ag15419/PHYSW24_DATA/TIDES/DATA0/mesh_mask.nc"

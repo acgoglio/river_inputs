@@ -49,31 +49,38 @@ from statsmodels.distributions.empirical_distribution import ECDF # empirical di
 # General run parameters:
 #---------------------
 # Work dir path:
-workdir= '/work/oda/ag15419/tmp/river_inputs/plots4ogs/' 
+workdir= '/work/oda/ag15419/tmp/eas6_efas/maps_ss/' 
+subworkdir_name='maps_efas'
 # input files:
 rivers_coo_file ='/users_home/oda/ag15419/river_inputs/Killworth/rivers_info_v2.csv'
 model_bathy='/work/oda/ag15419/PHYSW24_DATA/TIDES/DATA0/bathy_meter.nc'
 model_meshmask='/work/oda/ag15419/PHYSW24_DATA/TIDES/DATA0/mesh_mask.nc'
 # Area and experiment flags
-adriatico_flag=2 # 1 = Po river; 0 = all Med; 2= North Adriatic 
+adriatico_flag=0 # 1 = Po river; 0 = all Med; 2= North Adriatic 
 exp=1 # 1 = daily clim and Po obs ; 2 = EFAS daily mod  
 #
-ini_date='20190101'
-last_date='20191231'
-#delta_date='1'
+ini_date='20200101'
+last_date='20201231'
+delta_date='10'
 
 # Parameter setting
 #--------------------
 # MODEL DATASETS
-mod1_path='/work/oda/ag15419/arc_link/eas6_drpo_ogs/output/'
+mod1_path='/work/oda/ag15419/arc_link/eas6_efas/output/'
 mod2_path=' /work/oda/ag15419/arc_link/eas6_drpo_ctrl/output/'
 #
-mod1_prename1='assw_drpo_2019_1d_'
-mod1_prename2='assw_drpo_2019_1d_'
+mod1_prename1='assw_efas_1d_'
+mod1_prename2=mod1_prename1
+mod1_prename3=mod1_prename1
+mod1_prename4=mod1_prename1
+#mod1_prename1='assw_drpo_1d_'
+#mod1_prename2='assw_drpo2_1d_'
+#mod1_prename3='assw_drpo3_1d_'
+#mod1_prename4='assw_drpo4_1d_'
 
-mod2_prename='mfs1_v1_1d_'
+mod2_prename='mfs2_1d_' #'mfs1_v1_1d_'
 #
-mod1_lab='assw_drpo'
+mod1_lab='assw_efas'
 mod2_lab='assw_ctrl'
 
 # Field to be analized and type 
@@ -87,7 +94,7 @@ if mod_field == 'S':
    var_mod='vosaline'
    var_units='PSU'
    var_time_step=0
-   var_lev=10 # 0[1m],10[30m],30[150m]
+   var_lev=0 # 0[1m],10[30m],30[150m]
 
    if var_lev==0:
       var_lev_lab='sfc'
@@ -149,6 +156,7 @@ elif mod_field == 'T':
    var_units='deg C'
    var_time_step=0
    var_lev=0
+   var_lev_lab='sfc'
    if diff_flag==1:
       cmap='bwr'
    if adriatico_flag!=0:
@@ -184,8 +192,12 @@ for date_idx in daterange:
 
    if year+month == '201701':
       mod1_prename=mod1_prename1
-   else:
+   elif year == 2017:
       mod1_prename=mod1_prename2
+   elif year+month == '202001' or year == 2018 or year == 2019:
+      mod1_prename=mod1_prename3
+   else:
+      mod1_prename=mod1_prename4
 
    mod1_file=mod1_path+'/'+year+month+'/'+mod1_prename+year+month+day+'_grid_'+grid+'.nc'
    mod2_file=mod2_path+'/'+year+month+'/'+mod2_prename+year+month+day+'_grid_'+grid+'.nc'
@@ -219,7 +231,7 @@ for date_idx in daterange:
    landmask_mesh=model4.variables[var_mesh][0,var_lev,:,:]
 
    # Buil the dir and move in it
-   workdir_path = workdir+'/maps/'
+   workdir_path = workdir+'/'+subworkdir_name+'/'
    try:
        os.stat(workdir_path)
    except:

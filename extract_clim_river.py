@@ -39,9 +39,12 @@ print ('Output file is: ',daily_rivers)
 # days in the requested year
 days_in_year=sys.argv[3]
 # days per month
-days_per_month=sys.argv[14]
-days_per_month=eval('[' + days_per_month + ']')
-days_per_month=days_per_month[2:14] 
+tot_days_per_year=int(sys.argv[14])
+
+if tot_days_per_year == 366:
+   days_per_month=([31,29,31,30,31,30,31,31,30,31,30,31])
+else:
+   days_per_month=([31,28,31,30,31,30,31,31,30,31,30,31])
 
 # I/O nc dimensions and variables names
 # Dimensions names 

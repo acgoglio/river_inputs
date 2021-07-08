@@ -40,12 +40,12 @@ leap_year=1
 
 # Days_per month
 if leap_year == 1:
-   nov_to_feb=([30,31,31,29,31,30,31,30,31,31,30,31,30,31,31,28])
+   dec_to_jan=([31,31,29,31,30,31,30,31,31,30,31,30,31,31])
 else:
-   nov_to_feb=([30,31,31,28,31,30,31,30,31,31,30,31,30,31,31,28])
+   dec_to_jan=([31,31,28,31,30,31,30,31,31,30,31,30,31,31])
 
 # Build the array of output days  
-xnew = np.arange(nov_to_feb[1], np.sum(nov_to_feb[1:14]), 1.0)
+xnew = np.arange(dec_to_jan[0], np.sum(dec_to_jan[1:13]), 1.0)
 
 # Compute the days num in the year
 days_of_year=len(xnew)

@@ -56,12 +56,12 @@ rivers_coo_file ='/users_home/oda/ag15419/river_inputs/Killworth/rivers_info_v2.
 model_bathy='/work/oda/ag15419/PHYSW24_DATA/TIDES/DATA0/bathy_meter.nc'
 model_meshmask='/work/oda/ag15419/PHYSW24_DATA/TIDES/DATA0/mesh_mask.nc'
 # Area and experiment flags
-adriatico_flag=0 # 1 = Po river; 0 = all Med; 2= North Adriatic 
+adriatico_flag=2 # 1 = Po river; 0 = all Med; 2= North Adriatic 
 exp=1 # 1 = daily clim and Po obs ; 2 = EFAS daily mod  
 #
-ini_date='20200101'
-last_date='20201231'
-delta_date='10'
+ini_date='20191001'
+last_date='20200101'
+delta_date='1'
 
 # Parameter setting
 #--------------------
@@ -78,7 +78,7 @@ mod1_prename4=mod1_prename1
 #mod1_prename3='assw_drpo3_1d_'
 #mod1_prename4='assw_drpo4_1d_'
 
-mod2_prename='mfs2_1d_' #'mfs1_v1_1d_'
+mod2_prename='mfs1_v1_1d_' # 'mfs2_1d_' #'mfs1_v1_1d_'
 #
 mod1_lab='assw_efas'
 mod2_lab='assw_ctrl'
@@ -383,24 +383,26 @@ for date_idx in daterange:
       # Plot the legend and its label
       cbar = m.colorbar(cs, location='right', pad="10%")
       cbar.set_label(bar_label_string)
-      # Add tide-gauges
+      # Add river locations
       for tg2plot_idx in range(0,len(ALL_river_name)) :
         lon_ok=lons[int(ALL_river_lat[tg2plot_idx]),int(ALL_river_lon[tg2plot_idx])]
         lat_ok=lats[int(ALL_river_lat[tg2plot_idx]),int(ALL_river_lon[tg2plot_idx])]
         xp, yp = m(lon_ok,lat_ok)
         threechar=str(ALL_river_name[tg2plot_idx])
-        if exp == 1:
-         if threechar == 'Po_di_Volano' or threechar == 'Po_di_Levante':
-           plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=12,backgroundcolor='red',alpha=1,color='black') #fontsize=12
-         elif threechar[0:3] == 'Po_':
-           plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=12,backgroundcolor='navy',alpha=1,color='white') #fontsize=12
-         else:
-           plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=12,backgroundcolor='red',alpha=1,color='black')
-        elif exp == 2:
-         if threechar == 'Po_di_Volano' or threechar == 'Po_di_Levante' or threechar == 'Nilo' or threechar == 'Asi_Orontes' :
-           plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=12,backgroundcolor='navy',alpha=1,color='white')
-         else:
-          plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=12,backgroundcolor='red',alpha=1,color='black')
+        plt.scatter(xp, yp, s=100, alpha=1,marker='o', c='red')
+
+#        if exp == 1:
+#         if threechar == 'Po_di_Volano' or threechar == 'Po_di_Levante':
+#           plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=12,backgroundcolor='red',alpha=1,color='black') #fontsize=12
+#         elif threechar[0:3] == 'Po_':
+#           plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=12,backgroundcolor='navy',alpha=1,color='white') #fontsize=12
+#         else:
+#           plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=12,backgroundcolor='red',alpha=1,color='black')
+#        elif exp == 2:
+#         if threechar == 'Po_di_Volano' or threechar == 'Po_di_Levante' or threechar == 'Nilo' or threechar == 'Asi_Orontes' :
+#           plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=12,backgroundcolor='navy',alpha=1,color='white')
+#         else:
+#          plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=12,backgroundcolor='red',alpha=1,color='black')
    else:
       m = Basemap(llcrnrlon=llcrnrlon,llcrnrlat=llcrnrlat,urcrnrlon=urcrnrlon,urcrnrlat=urcrnrlat,resolution='c',projection='merc',lat_0=lat_0,lon_0=lon_0)
       xi, yi = m(lons, lats)
@@ -420,29 +422,31 @@ for date_idx in daterange:
       # Plot the legend and its label
       cbar = m.colorbar(cs, location='right', pad="10%")
       cbar.set_label(bar_label_string)
-      # Add tide-gauges
+      # Add rivers location
       for tg2plot_idx in range(0,len(ALL_river_name)) :
         lon_ok=lons[int(ALL_river_lat[tg2plot_idx]),int(ALL_river_lon[tg2plot_idx])]
         lat_ok=lats[int(ALL_river_lat[tg2plot_idx]),int(ALL_river_lon[tg2plot_idx])]
         xp, yp = m(lon_ok,lat_ok)
         threechar=str(ALL_river_name[tg2plot_idx])
-        if exp == 1:
-         if threechar == 'Po_di_Volano' or threechar == 'Po_di_Levante':
-           #plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=2,backgroundcolor='red',alpha=1,color='black') #fontsize=12
-           plt.scatter(xp, yp, s=100, alpha=1, c='red')
-         elif threechar[0:3] == 'Po_':
-           #plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=2,backgroundcolor='navy',alpha=1,color='white') #fontsize=12
-           plt.scatter(xp, yp, s=100, alpha=1, c='navy')
-         else:
-           #plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=2,backgroundcolor='red',alpha=1,color='black')
-           plt.scatter(xp, yp, s=100, alpha=1, c='red')
-        elif exp == 2:
-         if threechar == 'Po_di_Volano' or threechar == 'Po_di_Levante' or threechar == 'Nilo' or threechar == 'Asi_Orontes' :
-           #plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=2,backgroundcolor='navy',alpha=1,color='white') 
-           plt.scatter(xp, yp, s=100, alpha=1, c='navy')
-         else:
-          #plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=2,backgroundcolor='red',alpha=1,color='black')
-          plt.scatter(xp, yp, s=100, alpha=1, c='red')
+
+        plt.scatter(xp, yp, s=100, alpha=1,marker='o', c='red')
+#        if exp == 1:
+#         if threechar == 'Po_di_Volano' or threechar == 'Po_di_Levante':
+#           #plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=2,backgroundcolor='red',alpha=1,color='black') #fontsize=12
+#           plt.scatter(xp, yp, s=100, alpha=1, c='red')
+#         elif threechar[0:3] == 'Po_':
+#           #plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=2,backgroundcolor='navy',alpha=1,color='white') #fontsize=12
+#           plt.scatter(xp, yp, s=100, alpha=1, c='navy')
+#         else:
+#           #plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=2,backgroundcolor='red',alpha=1,color='black')
+#           plt.scatter(xp, yp, s=100, alpha=1, c='red')
+#        elif exp == 2:
+#         if threechar == 'Po_di_Volano' or threechar == 'Po_di_Levante' or threechar == 'Nilo' or threechar == 'Asi_Orontes' :
+#           #plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=2,backgroundcolor='navy',alpha=1,color='white') 
+#           plt.scatter(xp, yp, s=100, alpha=1, c='navy')
+#         else:
+#          #plt.text(xp,yp,str(int(ALL_river_num2[tg2plot_idx])), fontsize=2,backgroundcolor='red',alpha=1,color='black')
+#          plt.scatter(xp, yp, s=100, alpha=1, c='red')
    # Save and close 
    plt.savefig(plotname)
    plt.clf()

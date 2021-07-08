@@ -113,6 +113,7 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
       # Open the csv file
       with open(csv_infofile) as infile:
         # Loop on rivers
+        tmp_totarea=0 # TMP
         for line in infile:
             if line[0] != '#':
                # If EFAS data are available
@@ -125,7 +126,7 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
                   efas_lon_idx=line.split(';')[1]
                   print (efas_name,efas_lat_idx,efas_lon_idx)
                   #
-                  # If in the future the efas idx are needed use the following lines and remove the following lines (with *):
+                  # If in the future the efas idx are needed use the following lines and remove the succ lines (with *):
                   # Idx in EFAS grid
                   #efas_lat_efasidx=line.split(';')[11]
                   #efas_lon_efasidx=line.split(';')[12]
@@ -161,6 +162,9 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
                      efas_e2t=mod_e2t[0,int(efas_lat_idx),int(efas_lon_idx)]
                      efas_runoff=1000.0*np.array(dailyvals_fromefas)/(float(efas_e1t)*float(efas_e2t))
                      efas_runoff=np.array(efas_runoff)
+                     print ('Area: ',float(efas_e1t)*float(efas_e2t)) # TMP
+                     tmp_totarea=tmp_totarea+(float(efas_e1t)*float(efas_e2t)) # TMP
+                     print ('tmp_totarea parziale: ',tmp_totarea) # TMP
 
                      # For discharges on single grid points 
                      if int(efas_flag) == 1:
@@ -182,6 +186,23 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
                   else:
                      print ('ERROR: efas input file NOT FOUND!!')
 
+########## TMP #########
+
+               else:
+                  print ('NON efas..')
+                  efas_name=line.split(';')[5]
+                  # Idx in MED grid
+                  efas_lat_idx=line.split(';')[0]
+                  efas_lon_idx=line.split(';')[1]
+                  print (efas_name,efas_lat_idx,efas_lon_idx)
+                  efas_e1t=mod_e1t[0,int(efas_lat_idx),int(efas_lon_idx)]
+                  efas_e2t=mod_e2t[0,int(efas_lat_idx),int(efas_lon_idx)]
+                  print ('Area: ',float(efas_e1t)*float(efas_e2t)) # TMP
+                  tmp_totarea=tmp_totarea+(float(efas_e1t)*float(efas_e2t)) # TMP
+                  print ('tmp_totarea parziale: ',tmp_totarea) # TMP
+
+#######################
+
 else:
    print ('ERROR: Check mesh_mask and info csv files! ')
 
@@ -190,6 +211,8 @@ runoff[:]=new_field[:]
 # Close the mod outfile
 output_daily.close()
 
+
+print ('TOT AREA ',tmp_totarea) # TMP
 ######################################
 # Validation: check of the outfile
 print ('I am going to plot the diagnostic plots to validate the outfile: ',daily_rivers)

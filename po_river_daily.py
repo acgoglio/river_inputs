@@ -236,7 +236,7 @@ output_daily.close()
 
 # Open the file to write the Po obs 
 output_daily = NC.Dataset(daily_rivers,'r+') 
-# Build the new field:/new_f
+# Build the new field
 runoff = output_daily.createVariable(runoff_var, 'f4', (time_idx, lat_idx , lon_idx,))
 runoff.units = 'kg/m2/seconds'
 
@@ -291,6 +291,8 @@ if os.path.exists(csv_infofile) and os.path.exists(mod_meshmask):
                   branch_e2t=mod_e2t[0,int(branch_lat_idx),int(branch_lon_idx)]
                   dailyvals_fromobs=np.array(dailyvals_fromobs)
                   dailyvals_obsrunoff=np.where(dailyvals_fromobs!=0.000000000,1000.0*dailyvals_fromobs/(branch_e1t*branch_e2t),'nan')
+                  #print('Area: ',branch_e1t*branch_e2t)
+                  #print('Conversion: ',branch_e1t*branch_e2t/1000.0)
 
                   # Subtract the discharge of Po di Levante
                   # if required (e.g. if levante_flag != 0 )
